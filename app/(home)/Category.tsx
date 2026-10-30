@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FiMessageSquare } from "react-icons/fi";
 
 export default function Category() {
@@ -8,7 +9,7 @@ export default function Category() {
       </div>
       <div className="min-w-0 self-center py-2 pr-2">
         <div className="truncate leading-5">
-          <a className="text-base font-bold text-[#327db4] hover:underline" href="#">Lorem ipsum</a>
+          <Link className="text-base font-bold text-[#327db4] hover:underline" href="/general">Lorem ipsum</Link>
           <span className="ml-1 text-[11px] text-[#999]">(0 Viewers)</span>
         </div>
         <p className="mt-0.5 truncate text-[11px] leading-[15px] text-[#666]">

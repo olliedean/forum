@@ -5,7 +5,7 @@ export default function RecentThreadItem() {
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
       </a>
       <p className="truncate text-[11px] leading-[15px] text-[#777]">
-        in Lorem ipsum By Lorem ipsum
+        in Lorem ipsum by Lorem ipsum
       </p>
     </li>
   );

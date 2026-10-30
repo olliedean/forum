@@ -9,9 +9,7 @@ export default function ParentCategory() {
           Lorem ipsum dolor sit amet, consectetur adipiscing elit.
         </p>
       </header>
-      {Array.from({ length: 6 }, (_, index) => (
-        <Category key={index} />
-      ))}
+      {Array.from({ length: 6 }, (_, index) => <Category key={index} />)}
     </section>
   );
 }
