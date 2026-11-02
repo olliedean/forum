@@ -32,7 +32,7 @@ export default function SiteHeader() {
           className="flex h-[40px] items-center justify-between border-b border-[#e5e7eb] text-[13px]"
         >
           <div className="flex h-full items-center">
-          <Link href="/" aria-label="Home" className="flex h-full items-center px-4 text-[#555] transition-colors hover:bg-slate-100">
+          <Link href="/" aria-label="Home" className="flex overflow-hidden h-full items-center px-4 text-[#555] transition-colors hover:bg-slate-100 rounded-tl-xl">
             <FaHome className="size-4" />
           </Link>
           {categoryName && (
@@ -45,24 +45,23 @@ export default function SiteHeader() {
           )}
           </div>
           <div className="flex h-full">
-          <a
-            href="#"
-            className="flex h-full items-center gap-2 border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100"
-          >
-            Login/Join
-          </a>
-          <a
-            href="#"
-            className="flex h-full items-center gap border-l-1 border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100 group"
-          >
-            <FiChevronDown />
-            <div className="absolute right-0 top-full z-10 hidden w-[200px] flex-col gap-1 rounded-b-xl border border-t-0 border-[#e5e7eb] bg-white shadow-sm group-hover:flex">
-              <a href="/events" className="px-4 py-2 text-[#555] transition-colors hover:bg-slate-100 flex items-center">
-                <FaCalendar className="size-3 mr-2" />
-                Event Log
-              </a>
+            <a
+              href="#"
+              className="flex h-full items-center gap-2 border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100"
+            >
+              Login/Join
+            </a>
+            <div
+              className="flex h-full items-center gap border-l-1 border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100 group rounded-tr-xl relative"
+            >
+              <FiChevronDown />
+              <div className="absolute right-0 top-full z-10 hidden w-[200px] flex-col gap-1 rounded-b-xl border border-t-0 border-[#e5e7eb] bg-white shadow-sm group-hover:flex">
+                <a href="/events" className="px-4 py-2 text-[#555] transition-colors hover:bg-slate-100 flex items-center">
+                  <FaCalendar className="size-3 mr-2" />
+                  Event Log
+                </a>
+              </div>
             </div>
-          </a>
           </div>
         </nav>
       </header>
