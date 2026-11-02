@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaHome } from "react-icons/fa";
+import { FaCalendar, FaHome } from "react-icons/fa";
 import { FiChevronDown } from "react-icons/fi";
 
 function formatSlug(slug: string) {
@@ -26,7 +26,7 @@ export default function SiteHeader() {
         <a href="#" className="relative z-10 mr-3 hover:underline">Discord</a>
       </div>
 
-      <header className="relative z-10 overflow-hidden rounded-t-xl border border-b-0 border-[#e5e7eb] bg-white shadow-sm">
+      <header className="relative z-10 rounded-t-xl border border-b-0 border-[#e5e7eb] bg-white shadow-sm">
         <nav
           aria-label="Forum navigation"
           className="flex h-[40px] items-center justify-between border-b border-[#e5e7eb] text-[13px]"
@@ -53,9 +53,15 @@ export default function SiteHeader() {
           </a>
           <a
             href="#"
-            className="flex h-full items-center gap border-l-1 border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100"
+            className="flex h-full items-center gap border-l-1 border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100 group"
           >
             <FiChevronDown />
+            <div className="absolute right-0 top-full z-10 hidden w-[200px] flex-col gap-1 rounded-b-xl border border-t-0 border-[#e5e7eb] bg-white shadow-sm group-hover:flex">
+              <a href="/events" className="px-4 py-2 text-[#555] transition-colors hover:bg-slate-100 flex items-center">
+                <FaCalendar className="size-3 mr-2" />
+                Event Log
+              </a>
+            </div>
           </a>
           </div>
         </nav>
