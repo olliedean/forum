@@ -57,10 +57,16 @@ export default function ThreadPage() {
             0 mins ago <span className="text-slate-500">from</span> United Kingdom
           </header>
           <div className="grid grid-cols-1 md:grid-cols-[250px_minmax(0,1fr)]">
-            <div className="order-2 bg-slate-50 md:order-1">
-              side stuff
+            {/* postbit */}
+            <div className="relative order-2 bg-slate-50 md:order-1 border-r border-slate-200 group">
+              {/* work in progress for the bg. will probably switch to bg-background for scaling */}
+              <img src="/postbit-bg-example.avif" alt="postbit" className="grayscale opacity-20 group-hover:opacity-100 transition-all group-hover:transform group-hover:scale-105 group-hover:grayscale-0" />
+              <div className="absolute left-9 top-9 z-10 font-bold flex items-center gap-2 transition-colors group-hover:text-white">
+                ollie <span className="text-xs font-normal text-slate-200 bg-slate-400 px-2 rounded">1</span>
+              </div>
             </div>
-            <main className="order-1 min-w-0 min-h-72 md:order-2">
+            {/* post content */}
+            <main className="order-1 min-w-0 min-h-72 md:order-2 p-4 text-sm">
               post content
             </main>
           </div>
