@@ -46,7 +46,7 @@ export default function SiteHeader() {
           </div>
           <div className="flex h-full">
             <Link
-              href="#"
+              href="/login"
               className="flex h-full items-center gap-2 border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100"
             >
               Login/Join
