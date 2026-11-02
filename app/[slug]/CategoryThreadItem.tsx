@@ -1,3 +1,4 @@
+import Link from "next/dist/client/link";
 import { FiMessageSquare } from "react-icons/fi";
 
 export default function CategoryThreadItem() {
@@ -7,14 +8,14 @@ export default function CategoryThreadItem() {
         <FiMessageSquare aria-hidden="true" className="size-5" />
       </div>
       <div className="min-w-0 self-center py-3 pr-2">
-        <a
-          href="#"
+        <Link
+          href="/general/b0w0w1"
           className="block truncate text-[15px] font-medium text-[#327db4] hover:underline"
         >
           Lorem ipsum dolor sit amet, consectetur adipiscing elit
-        </a>
+        </Link>
         <p className="mt-1 truncate text-xs text-slate-500">
-          by <a href="#" className="text-[#327db4] hover:underline">Lorem ipsum</a>
+          by <Link href="/u/fe9i" className="text-[#327db4] hover:underline">Lorem ipsum</Link>
         </p>
       </div>
       <div className="flex flex-col items-center justify-center border-l border-slate-200 bg-slate-50 text-center">
