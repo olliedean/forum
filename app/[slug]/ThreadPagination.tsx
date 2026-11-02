@@ -1,31 +1,17 @@
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-
 export default function ThreadPagination() {
   return (
     <nav
       aria-label="Thread pagination"
-      className="flex min-h-[52px] items-center justify-between border-b border-slate-200 bg-slate-50 px-4 sm:px-5"
+      className="flex h-8 items-center justify-between border-b border-slate-200 bg-gray-100 pl-2"
     >
-      <p className="text-xs text-slate-500">0 threads</p>
-      <div className="flex items-center gap-1">
+      <span className="text-xs text-slate-500">Page 1 of 1</span>
+      <div className="flex text-xs text-slate-400">
         <button
           type="button"
-          aria-label="Previous page"
-          disabled
-          className="flex size-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-300"
+          aria-current="page"
+          className="h-8 border-l border-slate-200 px-4 transition-colors hover:bg-slate-50"
         >
-          <FiChevronLeft aria-hidden="true" className="size-4" />
-        </button>
-        <span className="flex size-8 items-center justify-center rounded bg-[#327db4] text-xs font-medium text-white">
-          0
-        </span>
-        <button
-          type="button"
-          aria-label="Next page"
-          disabled
-          className="flex size-8 items-center justify-center rounded border border-slate-200 bg-white text-slate-300"
-        >
-          <FiChevronRight aria-hidden="true" className="size-4" />
+          1
         </button>
       </div>
     </nav>

@@ -32,7 +32,6 @@ async function CategoryContent({ params }: CategoryPageProps) {
             Lorem ipsum dolor sit amet, consectetur adipiscing elit.
           </p>
         </div>
-
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Link
             href={`/${slug}/new`}
@@ -40,14 +39,13 @@ async function CategoryContent({ params }: CategoryPageProps) {
           >
             New Thread
           </Link>
-
           <form
             action="#"
             role="search"
             className="flex h-[38px] w-full shrink-0 overflow-hidden rounded-md border border-slate-200 sm:w-[250px]"
           >
             <input
-              aria-label={`Search General`}
+              aria-label="Search General"
               placeholder="Search..."
               className="min-w-0 flex-1 px-3 text-sm outline-none placeholder:text-slate-400"
             />
@@ -66,16 +64,15 @@ async function CategoryContent({ params }: CategoryPageProps) {
           <CategorySidebar />
         </div>
         <main className="order-1 min-w-0 md:order-2">
+        <ThreadPagination />
 
-          <ThreadPagination />
+        <section aria-label="Threads">
+          {Array.from({ length: 10 }, (_, index) => (
+            <CategoryThreadItem key={index} />
+          ))}
+        </section>
 
-          <section aria-label="Threads">
-            {Array.from({ length: 10 }, (_, index) => (
-              <CategoryThreadItem key={index} />
-            ))}
-          </section>
-
-          <ThreadPagination />
+        <ThreadPagination />
         </main>
       </div>
     </>

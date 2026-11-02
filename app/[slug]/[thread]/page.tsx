@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { FiSearch } from "react-icons/fi";
+import ThreadPagination from "../ThreadPagination";
 
 type ThreadPageProps = {
   params: {
@@ -21,7 +22,7 @@ export async function generateMetadata({
 export default function ThreadPage() {
   return(
     <div className="overflow-hidden rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-xl">
-      <header className="flex flex-col gap-4 border-slate-200 bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0">
           <h1 className="text-[26px] font-bold leading-8 text-slate-700">Thread Title</h1>
           <p className="text-sm text-slate-500">
@@ -44,14 +45,7 @@ export default function ThreadPage() {
           </button>
         </form>
       </header>
-      <div className="flex justify-between border-t border-slate-200 bg-gray-100 pl-2 items-center">
-        <span className="text-xs text-slate-500">Page 1 of 1</span>
-        <div className="flex text-xs text-slate-400">
-          <button className="border-l border-slate-200 h-8 px-4 transition-colors hover:bg-slate-50">
-            1
-          </button>
-        </div>
-      </div>
+      <ThreadPagination />
       {Array.from({ length: 10 }, (_, index) => (
         <div key={index}>
           <header className="bg-gray-100 px-2 py-1 text-xs text-slate-600 border-y border-slate-200">
