@@ -1,4 +1,4 @@
-import Link from "next/dist/client/link";
+import Link from "next/link";
 import { FiMessageSquare } from "react-icons/fi";
 
 export default function CategoryThreadItem() {

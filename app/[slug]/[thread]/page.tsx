@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { FiSearch } from "react-icons/fi";
 
 type ThreadPageProps = {
@@ -61,12 +62,12 @@ export default function ThreadPage() {
             <div className="relative order-2 bg-slate-50 md:order-1 border-r border-slate-200 group">
               {/* work in progress for the bg. will probably switch to bg-background for scaling */}
               <img src="/postbit-bg-example.avif" alt="postbit" className="grayscale opacity-20 group-hover:opacity-100 transition-all group-hover:transform group-hover:scale-105 group-hover:grayscale-0" />
-              <a 
+              <Link
               className="absolute left-9 top-9 z-10 font-bold flex items-center gap-2 transition-colors group-hover:text-white hover:underline"
               href="/u/w9dw"
               >
                 ollie <span className="text-xs font-normal text-slate-200 bg-slate-400 px-2 rounded">1</span>
-              </a>
+              </Link>
             </div>
             {/* post content */}
             <main className="order-1 min-w-0 min-h-72 md:order-2 p-4 text-sm">

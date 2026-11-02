@@ -45,21 +45,21 @@ export default function SiteHeader() {
           )}
           </div>
           <div className="flex h-full">
-            <a
+            <Link
               href="#"
               className="flex h-full items-center gap-2 border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100"
             >
               Login/Join
-            </a>
+            </Link>
             <div
               className="flex h-full items-center gap border-l-1 border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100 group rounded-tr-xl relative"
             >
               <FiChevronDown />
               <div className="absolute right-0 top-full z-10 hidden w-[200px] flex-col gap-1 rounded-b-xl border border-t-0 border-[#e5e7eb] bg-white shadow-sm group-hover:flex">
-                <a href="/events" className="px-4 py-2 text-[#555] transition-colors hover:bg-slate-100 flex items-center">
+                <Link href="/events" className="px-4 py-2 text-[#555] transition-colors hover:bg-slate-100 flex items-center">
                   <FaCalendar className="size-3 mr-2" />
                   Event Log
-                </a>
+                </Link>
               </div>
             </div>
           </div>

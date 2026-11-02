@@ -20,14 +20,14 @@ export default function Category() {
         </p>
       </div>
       <div className="hidden min-w-0 self-stretch border-l border-[#dce4eb] bg-[#f7fbff] px-2 py-1 text-right lg:flex lg:flex-col lg:justify-center">
-        <a 
+        <Link
           className="truncate text-[11px] font-medium leading-[15px] text-[#327db4]"
           href="/general/few9w0"
         >
           Lorem ipsum dolor sit amet
-        </a>
+        </Link>
         <p className="truncate text-[11px] leading-[15px] text-[#777]">
-          by <a href="/u/wefi" className="text-[#327db4] underline">Lorem ipsum</a>, 0 mins ago
+          by <Link href="/u/wefi" className="text-[#327db4] underline">Lorem ipsum</Link>, 0 mins ago
         </p>
       </div>
       <div className="flex flex-col items-center justify-center border-x border-slate-200 bg-slate-50 text-center">
