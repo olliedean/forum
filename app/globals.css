@@ -10,3 +10,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-rubik);
 }
+
+.admincp-shell {
+  font-family: var(--font-admin-inter), system-ui, sans-serif;
+}
+
+.admincp-shell .font-mono {
+  font-family: var(--font-admin-mono), monospace;
+}
