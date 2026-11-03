@@ -57,10 +57,10 @@ export default function ThreadPage() {
               {/* work in progress for the bg. will probably switch to bg-background for scaling */}
               <img src="/postbit-bg-example.avif" alt="postbit" className="grayscale opacity-20 group-hover:opacity-100 transition-all group-hover:transform group-hover:scale-105 group-hover:grayscale-0" />
               <Link
-              className="absolute left-9 top-9 z-10 font-bold flex items-center gap-2 transition-colors group-hover:text-white hover:underline"
+              className="absolute pl-9 top-6 z-10 py-2 font-bold flex items-center gap-2 transition-all w-[calc(100%+calc(var(--spacing)*1.5))] group-hover:text-white group-hover:bg-black/20 group-hover:backdrop-blur-sm"
               href="/u/w9dw"
               >
-                ollie <span className="text-xs font-normal text-slate-200 bg-slate-400 px-2 rounded">1</span>
+                  ollie <span className="text-xs font-normal text-slate-200 bg-slate-400 px-2 rounded">1</span>
               </Link>
             </div>
             {/* post content */}
