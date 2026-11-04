@@ -27,7 +27,7 @@ export default function AdminSidebar() {
           <NavigationItem
             icon={FaSitemap}
             label="Nodes & Categories"
-            href="#"
+            href="/admincp/nodes"
           />
           <NavigationItem
             icon={FaUserShield}
