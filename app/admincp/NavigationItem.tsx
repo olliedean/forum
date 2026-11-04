@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { IconType } from "react-icons";
 
 type NavigationItemProps = {
@@ -14,7 +17,10 @@ export default function NavigationItem({
   href,
   badge,
 }: NavigationItemProps) {
-  const isActive = href === "/admincp";
+  const pathname = usePathname();
+  const isActive =
+    pathname === href ||
+    (href !== "/admincp" && pathname.startsWith(`${href}/`));
 
   return (
     <Link
