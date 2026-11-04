@@ -104,7 +104,7 @@ export default function AdminPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 text-gray-700">
               { Array.from({ length: 8 }).map((_, index) => (
-              <tr className="hover:bg-gray-50/60">
+              <tr key={index} className="hover:bg-gray-50/60">
                 <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] text-gray-500">
                   0
                 </td>
