@@ -1,5 +1,5 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 
 type InitPageProps = {
   searchParams: Promise<{
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const inputClassName =
   "mt-1 block w-full rounded-sm border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#327db4]";
 
-export default async function InitPage({ searchParams }: InitPageProps) {
+async function InitContent({ searchParams }: InitPageProps) {
   const params = await searchParams;
   const isFirstSetup = params.first !== undefined && params.error === undefined;
 
@@ -94,5 +94,22 @@ export default async function InitPage({ searchParams }: InitPageProps) {
         )}
       </section>
     </main>
+  );
+}
+
+export default function InitPage({ searchParams }: InitPageProps) {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#f4f5f7] px-4 py-10">
+          <div
+            aria-label="Loading installation page"
+            className="h-48 w-full max-w-[560px] animate-pulse rounded-md border border-slate-200 bg-white"
+          />
+        </main>
+      }
+    >
+      <InitContent searchParams={searchParams} />
+    </Suspense>
   );
 }
