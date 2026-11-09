@@ -64,11 +64,10 @@ type MigrationStatus = "idle" | "running" | "complete" | "failed";
 type MigrationEvent =
   | { type: "start"; completed: string[]; pending: string[] }
   | { type: "migration-complete"; name: string }
-  | { type: "complete"; batch: number; completed: string[] }
+  | { type: "complete"; completed: string[] }
   | { type: "error"; message: string };
 
 type MigrationSnapshot = {
-  currentVersion: string;
   completed: string[];
   pending: string[];
 };
@@ -104,15 +103,12 @@ function parseMigrationEvent(value: unknown): MigrationEvent | null {
 
   if (
     value.type === "complete" &&
-    "batch" in value &&
-    typeof value.batch === "number" &&
     "completed" in value &&
     Array.isArray(value.completed) &&
     value.completed.every((name) => typeof name === "string")
   ) {
     return {
       type: "complete",
-      batch: value.batch,
       completed: value.completed,
     };
   }

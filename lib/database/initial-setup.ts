@@ -1,7 +1,8 @@
 import { link, open, readFile, unlink } from "node:fs/promises";
-import { randomBytes, scrypt } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { join } from "node:path";
+import { hashPassword } from "@/lib/auth/password";
 import { parseForumConfig, type ForumConfig, type ForumDetails } from "./config";
 import { createKnexClient } from "./connection";
 import type { DatabaseSettings } from "./database-settings";
@@ -34,30 +35,6 @@ const setupSettingKeys = [
   "timezone",
   "auto_migrate_on_startup",
 ] as const;
-
-function derivePasswordHash(password: string): Promise<string> {
-  const salt = randomBytes(16);
-  const cost = 16_384;
-  const blockSize = 8;
-  const parallelization = 1;
-  return new Promise((resolve, reject) => {
-    scrypt(
-      password,
-      salt,
-      64,
-      { N: cost, r: blockSize, p: parallelization },
-      (error, derivedKey) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(
-          `scrypt$${cost}$${blockSize}$${parallelization}$${salt.toString("base64url")}$${derivedKey.toString("base64url")}`,
-        );
-      },
-    );
-  });
-}
 
 function readSavedSetup(settings: Array<{ key: string; value: string }>): SavedSetup {
   const values = new Map(settings.map(({ key, value }) => [key, value]));
@@ -96,7 +73,6 @@ async function saveInitialSetup(
     throw new SetupNotReadyError("Apply all pending database migrations before finishing setup.");
   }
 
-  const passwordHash = await derivePasswordHash(administrator.password);
   const database = createKnexClient(databaseSettings);
   try {
     return await database.transaction(async (transaction) => {
@@ -117,6 +93,7 @@ async function saveInitialSetup(
         );
       }
 
+      const passwordHash = await hashPassword(administrator.password);
       await transaction("users").insert({
         username: administrator.username,
         email: administrator.email,

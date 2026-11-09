@@ -9,7 +9,7 @@ import { authorizeSetupRequest } from "../../setup-api";
 type MigrationEvent =
   | { type: "start"; completed: string[]; pending: string[] }
   | { type: "migration-complete"; name: string }
-  | { type: "complete"; batch: number; completed: string[] }
+  | { type: "complete"; completed: string[] }
   | { type: "error"; message: string };
 
 function encodeEvent(event: MigrationEvent) {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       });
 
       try {
-        const result = await runMigrationsForDatabase(
+        await runMigrationsForDatabase(
           databaseSettings,
           undefined,
           (name) => send({ type: "migration-complete", name }),
@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
         const status = await getMigrationStatusForDatabase(databaseSettings);
         send({
           type: "complete",
-          batch: result.batch,
           completed: status.completed,
         });
       } catch (error) {
