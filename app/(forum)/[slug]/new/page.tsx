@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 type NewThreadPageProps = {
   params: Promise<{ slug: string }>;
@@ -17,6 +19,9 @@ export async function generateMetadata({
 }
 
 async function NewThreadContent({ params }: NewThreadPageProps) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   const { slug } = await params;
 
   return (

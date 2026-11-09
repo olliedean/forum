@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FiSearch } from "react-icons/fi";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import CategorySidebar from "./CategorySidebar";
 import CategoryThreadItem from "./CategoryThreadItem";
 import ThreadPagination from "./ThreadPagination";
@@ -22,6 +23,7 @@ export async function generateMetadata({
 
 async function CategoryContent({ params }: CategoryPageProps) {
   const { slug } = await params;
+  const user = await getCurrentUser();
 
   return (
     <>
@@ -33,12 +35,14 @@ async function CategoryContent({ params }: CategoryPageProps) {
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <Link
-            href={`/${slug}/new`}
-            className="inline-flex h-[38px] items-center justify-center rounded-md bg-[#327db4] px-4 text-sm font-medium text-white transition-colors hover:bg-[#286a9b]"
-          >
-            New Thread
-          </Link>
+          {user && (
+            <Link
+              href={`/${slug}/new`}
+              className="inline-flex h-[38px] items-center justify-center rounded-md bg-[#327db4] px-4 text-sm font-medium text-white transition-colors hover:bg-[#286a9b]"
+            >
+              New Thread
+            </Link>
+          )}
           <form
             action="#"
             role="search"

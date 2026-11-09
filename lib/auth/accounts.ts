@@ -2,14 +2,14 @@ import type { Knex } from "knex";
 import type { NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 import { hashPassword, verifyPassword } from "./password";
-import { createSession, type AuthenticatedUser } from "./session";
+import { createSession, type AccountUser } from "./session";
 
 export class DuplicateAccountError extends Error {}
 
 const dummyPasswordHash = hashPassword(randomBytes(32).toString("base64url"));
 
 export type IssuedUserSession = {
-  user: AuthenticatedUser;
+  user: AccountUser;
   session: Awaited<ReturnType<typeof createSession>>;
 };
 

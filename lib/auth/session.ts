@@ -10,7 +10,23 @@ export type AuthenticatedUser = {
   id: string;
   username: string;
   email: string;
+  ranks: string[];
 };
+
+export type AccountUser = Pick<AuthenticatedUser, "id" | "username" | "email">;
+
+function parseUserRanks(value: unknown): string[] {
+  let ranks: unknown;
+  try {
+    ranks = typeof value === "string" ? JSON.parse(value) : value;
+  } catch (error) {
+    throw new Error("Stored user ranks are not valid JSON.", { cause: error });
+  }
+  if (!Array.isArray(ranks) || !ranks.every((rank) => typeof rank === "string")) {
+    throw new Error("Stored user ranks must be an array of strings.");
+  }
+  return ranks;
+}
 
 function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -70,6 +86,7 @@ export async function getSessionUser(
       "users.id as user_id",
       "users.username",
       "users.email",
+      "users.ranks",
     )
     .where("sessions.token_hash", tokenHash)
     .andWhere("sessions.expires_at", ">", new Date())
@@ -84,6 +101,7 @@ export async function getSessionUser(
     id: String(session.user_id),
     username: session.username,
     email: session.email,
+    ranks: parseUserRanks(session.ranks),
   };
 }
 
