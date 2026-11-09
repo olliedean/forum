@@ -9,7 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@lexical/clipboard": "^0.53.0",
+    "@lexical/extension": "^0.53.0",
+    "@lexical/history": "^0.53.0",
+    "@lexical/html": "^0.53.0",
+    "@lexical/react": "^0.53.0",
+    "@lexical/rich-text": "^0.53.0",
     "knex": "^3.3.0",
+    "lexical": "^0.53.0",
     "mysql2": "^3.24.6",
     "next": "16.4.3",
     "pg": "^8.23.1",
