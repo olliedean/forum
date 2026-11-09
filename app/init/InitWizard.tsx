@@ -21,13 +21,6 @@ const steps = [
   { title: "Review", icon: FiCheck },
 ];
 
-const migrationNames = [
-  "Create core forum tables",
-  "Add user and permission tables",
-  "Add thread and post indexes",
-  "Seed default forum settings",
-];
-
 type SetupValues = {
   databaseType: "postgresql" | "mysql";
   databaseHost: string;
@@ -67,10 +60,73 @@ const initialValues: SetupValues = {
 };
 
 type ConnectionStatus = "idle" | "testing" | "connected" | "failed";
-type MigrationStatus = "idle" | "running" | "complete";
+type MigrationStatus = "idle" | "running" | "complete" | "failed";
 
-function wait(duration: number) {
-  return new Promise((resolve) => setTimeout(resolve, duration));
+type MigrationEvent =
+  | { type: "start"; completed: string[]; pending: string[] }
+  | { type: "migration-complete"; name: string }
+  | { type: "complete"; batch: number; completed: string[] }
+  | { type: "error"; message: string };
+
+type MigrationSnapshot = {
+  currentVersion: string;
+  completed: string[];
+  pending: string[];
+};
+
+function parseMigrationEvent(value: unknown): MigrationEvent | null {
+  if (typeof value !== "object" || value === null || !("type" in value)) {
+    return null;
+  }
+
+  if (
+    value.type === "start" &&
+    "completed" in value &&
+    Array.isArray(value.completed) &&
+    value.completed.every((name) => typeof name === "string") &&
+    "pending" in value &&
+    Array.isArray(value.pending) &&
+    value.pending.every((name) => typeof name === "string")
+  ) {
+    return {
+      type: "start",
+      completed: value.completed,
+      pending: value.pending,
+    };
+  }
+
+  if (
+    value.type === "migration-complete" &&
+    "name" in value &&
+    typeof value.name === "string"
+  ) {
+    return { type: "migration-complete", name: value.name };
+  }
+
+  if (
+    value.type === "complete" &&
+    "batch" in value &&
+    typeof value.batch === "number" &&
+    "completed" in value &&
+    Array.isArray(value.completed) &&
+    value.completed.every((name) => typeof name === "string")
+  ) {
+    return {
+      type: "complete",
+      batch: value.batch,
+      completed: value.completed,
+    };
+  }
+
+  if (
+    value.type === "error" &&
+    "message" in value &&
+    typeof value.message === "string"
+  ) {
+    return { type: "error", message: value.message };
+  }
+
+  return null;
 }
 
 function isValidEmail(email: string) {
@@ -115,7 +171,9 @@ export default function InitWizard({
   const [connectionError, setConnectionError] = useState("");
   const [migrationStatus, setMigrationStatus] = useState<MigrationStatus>("idle");
   const [migrationProgress, setMigrationProgress] = useState(0);
-  const [completedMigrations, setCompletedMigrations] = useState(0);
+  const [completedMigrations, setCompletedMigrations] = useState<string[]>([]);
+  const [pendingMigrations, setPendingMigrations] = useState<string[]>([]);
+  const [migrationError, setMigrationError] = useState("");
   const databaseBusy =
     connectionStatus === "testing" || migrationStatus === "running";
 
@@ -135,8 +193,30 @@ export default function InitWizard({
       setConnectionError("");
       setMigrationStatus("idle");
       setMigrationProgress(0);
-      setCompletedMigrations(0);
+      setCompletedMigrations([]);
+      setPendingMigrations([]);
+      setMigrationError("");
     }
+  }
+
+  function databasePayload() {
+    return {
+      database: {
+        type: values.databaseType,
+        host: values.databaseHost,
+        port: Number(values.databasePort),
+        database: values.databaseName,
+        username: values.databaseUser,
+        password: values.databasePassword,
+      },
+    };
+  }
+
+  function requestHeaders() {
+    return {
+      "Content-Type": "application/json",
+      ...(setupToken ? { "X-Forum-Setup-Token": setupToken } : {}),
+    };
   }
 
   function validateCurrentStep() {
@@ -221,25 +301,17 @@ export default function InitWizard({
     setConnectionError("");
     setConnectionStatus("testing");
     setMigrationStatus("idle");
-    setCompletedMigrations(0);
+    setCompletedMigrations([]);
+    setPendingMigrations([]);
+    setMigrationProgress(0);
+    setMigrationError("");
 
+    let connectionTestSucceeded = false;
     try {
       const response = await fetch("/api/init/test-connection", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(setupToken ? { "X-Forum-Setup-Token": setupToken } : {}),
-        },
-        body: JSON.stringify({
-          database: {
-            type: values.databaseType,
-            host: values.databaseHost,
-            port: Number(values.databasePort),
-            database: values.databaseName,
-            username: values.databaseUser,
-            password: values.databasePassword,
-          },
-        }),
+        headers: requestHeaders(),
+        body: JSON.stringify(databasePayload()),
       });
 
       const result: unknown = await response.json();
@@ -255,13 +327,57 @@ export default function InitWizard({
       }
 
       setConnectionStatus("connected");
+      connectionTestSucceeded = true;
+      const migrationResponse = await fetch("/api/init/migrations/status", {
+        method: "POST",
+        headers: requestHeaders(),
+        body: JSON.stringify(databasePayload()),
+      });
+      const migrationResult: unknown = await migrationResponse.json();
+      if (!migrationResponse.ok) {
+        const message =
+          typeof migrationResult === "object" &&
+          migrationResult !== null &&
+          "error" in migrationResult &&
+          typeof migrationResult.error === "string"
+            ? migrationResult.error
+            : "Could not read the migration status.";
+        throw new Error(message);
+      }
+
+      if (
+        typeof migrationResult !== "object" ||
+        migrationResult === null ||
+        !("completed" in migrationResult) ||
+        !Array.isArray(migrationResult.completed) ||
+        !migrationResult.completed.every((name) => typeof name === "string") ||
+        !("pending" in migrationResult) ||
+        !Array.isArray(migrationResult.pending) ||
+        !migrationResult.pending.every((name) => typeof name === "string")
+      ) {
+        throw new Error("The server returned an invalid migration status.");
+      }
+
+      const snapshot = migrationResult as MigrationSnapshot;
+      setCompletedMigrations(snapshot.completed);
+      setPendingMigrations(snapshot.pending);
+      const total = snapshot.completed.length + snapshot.pending.length;
+      setMigrationProgress(
+        total === 0 ? 100 : Math.round((snapshot.completed.length / total) * 100),
+      );
+      setMigrationStatus(snapshot.pending.length === 0 ? "complete" : "idle");
     } catch (connectionFailure) {
-      setConnectionStatus("failed");
-      setConnectionError(
+      const message =
         connectionFailure instanceof Error
           ? connectionFailure.message
-          : "Database connection test failed. Try again.",
-      );
+          : "Database connection test failed. Try again.";
+      if (!connectionTestSucceeded) {
+        setConnectionStatus("failed");
+        setConnectionError(message);
+      } else {
+        setMigrationStatus("failed");
+        setMigrationError(message);
+      }
     }
   }
 
@@ -269,18 +385,113 @@ export default function InitWizard({
     if (connectionStatus !== "connected" || migrationStatus === "running") return;
 
     setError("");
+    setMigrationError("");
     setMigrationStatus("running");
-    setMigrationProgress(0);
-    setCompletedMigrations(0);
+    try {
+      const response = await fetch("/api/init/migrations/run", {
+        method: "POST",
+        headers: requestHeaders(),
+        body: JSON.stringify(databasePayload()),
+      });
 
-    for (let index = 0; index < migrationNames.length; index += 1) {
-      await wait(550);
-      const completed = index + 1;
-      setCompletedMigrations(completed);
-      setMigrationProgress(Math.round((completed / migrationNames.length) * 100));
+      if (!response.ok) {
+        const result: unknown = await response.json();
+        const message =
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : "Could not start database migrations.";
+        throw new Error(message);
+      }
+      if (!response.body) {
+        throw new Error("The migration response did not contain a progress stream.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let receivedCompletion = false;
+      let receivedError = false;
+      let completedCount = completedMigrations.length;
+      let totalCount = completedMigrations.length + pendingMigrations.length;
+
+      const handleEvent = (event: MigrationEvent) => {
+        if (event.type === "start") {
+          completedCount = event.completed.length;
+          totalCount = event.completed.length + event.pending.length;
+          setCompletedMigrations(event.completed);
+          setPendingMigrations(event.pending);
+          setMigrationProgress(
+            totalCount === 0
+              ? 100
+              : Math.round((completedCount / totalCount) * 100),
+          );
+        } else if (event.type === "migration-complete") {
+          completedCount += 1;
+          setCompletedMigrations((current) =>
+            current.includes(event.name) ? current : [...current, event.name],
+          );
+          setPendingMigrations((current) => current.filter((name) => name !== event.name));
+          setMigrationProgress(
+            totalCount === 0
+              ? 100
+              : Math.min(
+                  100,
+                  Math.round((completedCount / totalCount) * 100),
+                ),
+          );
+        } else if (event.type === "complete") {
+          receivedCompletion = true;
+          setCompletedMigrations(event.completed);
+          setPendingMigrations([]);
+          setMigrationProgress(100);
+          setMigrationStatus("complete");
+        } else {
+          receivedError = true;
+          setMigrationError(event.message);
+          setMigrationStatus("failed");
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const messages = buffer.split("\n\n");
+        buffer = messages.pop() ?? "";
+
+        for (const message of messages) {
+          const dataLine = message.split("\n").find((line) => line.startsWith("data: "));
+          if (!dataLine) continue;
+
+          let event: unknown;
+          try {
+            event = JSON.parse(dataLine.slice(6));
+          } catch {
+            throw new Error("The migration server sent invalid progress data.");
+          }
+          const parsedEvent = parseMigrationEvent(event);
+          if (!parsedEvent) {
+            throw new Error("The migration server sent invalid progress data.");
+          }
+          handleEvent(parsedEvent);
+        }
+
+        if (done) break;
+      }
+
+      if (!receivedCompletion && !receivedError) {
+        throw new Error("The migration process ended before reporting completion.");
+      }
+    } catch (migrationFailure) {
+      setMigrationStatus("failed");
+      setMigrationError(
+        migrationFailure instanceof Error
+          ? migrationFailure.message
+          : "Database migrations failed.",
+      );
     }
-
-    setMigrationStatus("complete");
   }
 
   function goBack() {
@@ -372,6 +583,10 @@ export default function InitWizard({
                               setConnectionStatus("idle");
                               setConnectionError("");
                               setMigrationStatus("idle");
+                              setMigrationError("");
+                              setCompletedMigrations([]);
+                              setPendingMigrations([]);
+                              setMigrationProgress(0);
                             }}
                             disabled={databaseBusy}
                             className={inputClassName}
@@ -532,18 +747,30 @@ export default function InitWizard({
                             <p className="text-xs font-medium text-slate-700">Database migrations</p>
                             <p className="mt-1 text-[11px] text-slate-500">
                               {migrationStatus === "complete"
-                                ? `${migrationNames.length} migrations complete`
+                                  ? `${completedMigrations.length} migrations complete`
                                 : migrationStatus === "running"
-                                  ? `Applying ${completedMigrations + 1} of ${migrationNames.length}`
-                                  : "Create the tables and indexes used by the forum"}
+                                    ? `Completed ${completedMigrations.length} of ${completedMigrations.length + pendingMigrations.length}`
+                                    : migrationStatus === "failed"
+                                      ? "Migration failed"
+                                      : pendingMigrations.length > 0
+                                        ? `${pendingMigrations.length} pending`
+                                        : connectionStatus === "connected"
+                                          ? "Database is up to date"
+                                          : "Test the database connection first"}
                             </p>
+                            {migrationError && (
+                              <p className="mt-1 max-w-xl text-[11px] leading-4 text-red-700" role="alert">
+                                {migrationError}
+                              </p>
+                            )}
                           </div>
                           <button
                             type="button"
                             disabled={
                               connectionStatus !== "connected" ||
                               migrationStatus === "running" ||
-                              migrationStatus === "complete"
+                              migrationStatus === "complete" ||
+                              pendingMigrations.length === 0
                             }
                             onClick={runMigrations}
                             className="inline-flex shrink-0 items-center justify-center gap-2 border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -559,11 +786,14 @@ export default function InitWizard({
                               ? "Migrating..."
                               : migrationStatus === "complete"
                                 ? "Complete"
-                                : "Run migrations"}
+                                : migrationStatus === "failed"
+                                  ? "Retry migrations"
+                                  : "Run migrations"}
                           </button>
                         </div>
 
-                        {(migrationStatus === "running" || migrationStatus === "complete") && (
+                        {connectionStatus === "connected" &&
+                          (completedMigrations.length > 0 || pendingMigrations.length > 0) && (
                           <div className="mt-3 space-y-3">
                             <div
                               aria-label="Migration progress"
@@ -579,10 +809,10 @@ export default function InitWizard({
                               />
                             </div>
                             <ol className="space-y-1.5">
-                              {migrationNames.map((name, index) => {
-                                const isDone = index < completedMigrations;
-                                const isCurrent =
-                                  migrationStatus === "running" && index === completedMigrations;
+                              {[...completedMigrations, ...pendingMigrations].map((name, index) => {
+                                const isDone = index < completedMigrations.length;
+                                const isCurrent = migrationStatus === "running" &&
+                                  name === pendingMigrations[0];
 
                                 return (
                                   <li
