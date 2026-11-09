@@ -3,29 +3,20 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FiLoader } from "react-icons/fi";
+import { isAuthUser, useAuthSession } from "@/app/_components/useAuthSession";
 
 type AuthMode = "login" | "register";
-type AuthUser = { id: string; username: string; email: string };
-
-function isAuthUser(value: unknown): value is AuthUser {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof value.id === "string" &&
-    "username" in value &&
-    typeof value.username === "string" &&
-    "email" in value &&
-    typeof value.email === "string"
-  );
-}
 
 export default function LoginForm() {
   const router = useRouter();
+  const {
+    user,
+    isLoading: checkingSession,
+    error: sessionError,
+    acceptUser,
+  } = useAuthSession();
   const [mode, setMode] = useState<AuthMode>("login");
   const isRegistering = mode === "register";
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -47,49 +38,6 @@ export default function LoginForm() {
 
     router.replace(destination);
   }, [router, user]);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then(async (response) => {
-        const result: unknown = await response.json();
-        if (!response.ok) {
-          throw new Error(
-            typeof result === "object" &&
-              result !== null &&
-              "error" in result &&
-              typeof result.error === "string"
-              ? result.error
-              : "Could not check the current session.",
-          );
-        }
-        if (
-          typeof result !== "object" ||
-          result === null ||
-          !("user" in result) ||
-          (result.user !== null && !isAuthUser(result.user))
-        ) {
-          throw new Error("The server returned an invalid session response.");
-        }
-        if (active) setUser(result.user);
-      })
-      .catch((failure: unknown) => {
-        if (active) {
-          setError(
-            failure instanceof Error
-              ? failure.message
-              : "Could not check the current session.",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setCheckingSession(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -148,7 +96,7 @@ export default function LoginForm() {
         throw new Error("The server returned an invalid account response.");
       }
 
-      setUser(result.user);
+      acceptUser(result.user);
       form.reset();
     } catch (failure) {
       setError(
@@ -273,9 +221,9 @@ export default function LoginForm() {
           </label>
         )}
 
-        {error && (
+        {(error || sessionError) && (
           <p className="mb-4 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800" role="alert">
-            {error}
+            {error || sessionError}
           </p>
         )}
         <button

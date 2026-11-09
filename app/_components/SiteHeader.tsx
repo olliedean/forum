@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRef } from "react";
 import { FaCalendar, FaHome } from "react-icons/fa";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiLogOut, FiLoader } from "react-icons/fi";
+import { useAuthSession } from "./useAuthSession";
 
 function formatSlug(slug: string) {
   return slug
@@ -15,9 +17,23 @@ function formatSlug(slug: string) {
 
 export default function SiteHeader() {
   const pathname = usePathname();
+  const {
+    user,
+    isLoading,
+    error: sessionError,
+    signingOut,
+    signOut: signOutSession,
+  } = useAuthSession();
+  const accountMenu = useRef<HTMLDetailsElement>(null);
   const categoryMatch = pathname.match(/^\/([^/]+)$/);
   const categorySlug = categoryMatch?.[1] ?? "";
   const categoryName = categorySlug ? formatSlug(categorySlug) : "";
+
+  async function signOut() {
+    if (await signOutSession()) {
+      if (accountMenu.current) accountMenu.current.open = false;
+    }
+  }
 
   return (
     <>
@@ -45,23 +61,78 @@ export default function SiteHeader() {
           )}
           </div>
           <div className="flex h-full">
-            <Link
-              href="/login"
-              className="flex h-full items-center gap-2 border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100"
-            >
-              Login/Join
-            </Link>
-            <div
-              className="flex h-full items-center gap border-l-1 border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100 group rounded-tr-xl relative"
-            >
-              <FiChevronDown />
-              <div className="absolute right-0 top-full z-10 hidden w-[200px] flex-col gap-1 rounded-b-xl border border-t-0 border-[#e5e7eb] bg-white shadow-sm group-hover:flex">
-                <Link href="/events" className="px-4 py-2 text-[#555] transition-colors hover:bg-slate-100 flex items-center">
-                  <FaCalendar className="size-3 mr-2" />
+            {isLoading ? (
+              <span className="flex h-full items-center border-l border-[#e5e7eb] px-4 text-slate-400">
+                …
+              </span>
+            ) : user ? (
+              <details ref={accountMenu} className="group relative h-full">
+                <summary
+                  aria-label="Account menu"
+                  className="flex h-full max-w-44 cursor-pointer list-none items-center gap-2 border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#327db4] [&::-webkit-details-marker]:hidden"
+                >
+                  <span className="truncate">{user.username}</span>
+                  <FiChevronDown
+                    className="size-3 shrink-0 transition-transform group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="absolute right-0 top-full z-20 hidden w-48 flex-col border border-t-0 border-[#e5e7eb] bg-white py-1 text-[#555] shadow-md group-open:flex">
+                  <Link
+                    href={`/u/${encodeURIComponent(user.id)}`}
+                    className="px-4 py-2 hover:bg-slate-100"
+                  >
+                    View profile
+                  </Link>
+                  {sessionError && (
+                    <p className="border-t border-slate-100 px-4 py-2 text-xs text-red-700" role="alert">
+                      {sessionError}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={signOut}
+                    disabled={signingOut}
+                    className="flex items-center gap-2 border-t border-slate-100 px-4 py-2 text-left hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {signingOut ? (
+                      <FiLoader className="animate-spin" aria-hidden="true" />
+                    ) : (
+                      <FiLogOut aria-hidden="true" />
+                    )}
+                    Sign out
+                  </button>
+                </div>
+              </details>
+            ) : (
+              <Link
+                href="/login"
+                className="flex h-full items-center gap-2 border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100"
+                title={sessionError || undefined}
+              >
+                Login/Join
+              </Link>
+            )}
+            <details className="group relative h-full">
+              <summary
+                aria-label="event log menu"
+                className="flex h-full cursor-pointer list-none items-center gap-2 rounded-tr-xl border-l border-[#e5e7eb] px-4 text-[#555] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#327db4] [&::-webkit-details-marker]:hidden"
+              >
+                <FiChevronDown
+                  className="size-3 transition-transform group-open:rotate-180"
+                  aria-hidden="true"
+                />
+              </summary>
+              <div className="absolute right-0 top-full z-20 hidden w-48 flex-col border border-t-0 border-[#e5e7eb] bg-white py-1 shadow-md group-open:flex">
+                <Link
+                  href="/events"
+                  className="flex items-center px-4 py-2 text-[#555] transition-colors hover:bg-slate-100"
+                >
+                  <FaCalendar className="size-3 mr-2" aria-hidden="true" />
                   Event Log
                 </Link>
               </div>
-            </div>
+            </details>
           </div>
         </nav>
       </header>
