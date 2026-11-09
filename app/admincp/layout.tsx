@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import RequireForumConfig from "@/app/_components/RequireForumConfig";
 import AdminHeader from "./AdminHeader";
 import AdminSidebar from "./AdminSidebar";
 
@@ -20,16 +22,20 @@ export const metadata: Metadata = {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div
-      className={`${inter.variable} ${jetBrainsMono.variable} admincp-shell min-h-screen bg-[#f4f5f7] text-[13px] leading-snug text-[#1e2329]`}
-    >
-      <AdminHeader />
-      <div className="flex min-h-screen pt-12">
-        <AdminSidebar />
-        <main className="ml-56 min-h-[calc(100vh-3rem)] max-w-[1380px] flex-1 p-5">
-          {children}
-        </main>
-      </div>
-    </div>
+    <Suspense fallback={<div className="min-h-screen bg-[#f4f5f7]" />}>
+      <RequireForumConfig>
+        <div
+          className={`${inter.variable} ${jetBrainsMono.variable} admincp-shell min-h-screen bg-[#f4f5f7] text-[13px] leading-snug text-[#1e2329]`}
+        >
+          <AdminHeader />
+          <div className="flex min-h-screen pt-12">
+            <AdminSidebar />
+            <main className="ml-56 min-h-[calc(100vh-3rem)] max-w-[1380px] flex-1 p-5">
+              {children}
+            </main>
+          </div>
+        </div>
+      </RequireForumConfig>
+    </Suspense>
   );
 }

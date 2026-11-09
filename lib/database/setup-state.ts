@@ -1,10 +1,10 @@
-import { access } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export async function isForumConfigPresent(): Promise<boolean> {
+export async function isForumConfigReady(): Promise<boolean> {
   try {
-    await access(join(process.cwd(), "config.json"));
-    return true;
+    const contents = await readFile(join(process.cwd(), "config.json"), "utf8");
+    return contents.trim().length > 0;
   } catch (error) {
     if (
       typeof error === "object" &&

@@ -6,11 +6,11 @@ import {
 } from "@/lib/auth/session";
 import { readForumConfig } from "@/lib/database/config";
 import { createKnexClient } from "@/lib/database/connection";
-import { isForumConfigPresent } from "@/lib/database/setup-state";
+import { isForumConfigReady } from "@/lib/database/setup-state";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get(sessionCookieName)?.value;
-  if (!token || !(await isForumConfigPresent())) {
+  if (!token || !(await isForumConfigReady())) {
     return noStoreJson({ user: null });
   }
 

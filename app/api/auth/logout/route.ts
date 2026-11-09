@@ -5,7 +5,7 @@ import {
   noStoreJson,
 } from "@/lib/auth/auth-api";
 import { deleteSession, sessionCookieName } from "@/lib/auth/session";
-import { isForumConfigPresent } from "@/lib/database/setup-state";
+import { isForumConfigReady } from "@/lib/database/setup-state";
 import { readForumConfig } from "@/lib/database/config";
 import { createKnexClient } from "@/lib/database/connection";
 
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   const token = request.cookies.get(sessionCookieName)?.value;
   if (!token) return noStoreJson({ ok: true });
 
-  if (!(await isForumConfigPresent())) {
+  if (!(await isForumConfigReady())) {
     const response = noStoreJson({ ok: true });
     clearSessionCookie(response);
     return response;

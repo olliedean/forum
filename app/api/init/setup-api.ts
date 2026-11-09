@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { isForumConfigPresent } from "@/lib/database/setup-state";
+import { isForumConfigReady } from "@/lib/database/setup-state";
 
 const requestWindowMs = 60_000;
 const maxAttemptsPerWindow = 8;
@@ -51,7 +51,7 @@ async function setupIsEnabled() {
     return false;
   }
 
-  return !(await isForumConfigPresent());
+  return !(await isForumConfigReady());
 }
 
 function hasValidSetupToken(request: NextRequest) {
