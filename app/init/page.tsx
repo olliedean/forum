@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { redirect } from "next/navigation";
+import { isForumConfigPresent } from "@/lib/database/setup-state";
 import InitWizard from "./InitWizard";
 
 export const metadata: Metadata = {
@@ -10,7 +12,8 @@ export const metadata: Metadata = {
 
 async function InitContent() {
   await connection();
-  return <InitWizard setupTokenRequired={Boolean(process.env.FORUM_SETUP_TOKEN)} />;
+  if (await isForumConfigPresent()) redirect("/");
+  else return <InitWizard setupTokenRequired={Boolean(process.env.FORUM_SETUP_TOKEN)} />;
 }
 
 export default function InitPage() {

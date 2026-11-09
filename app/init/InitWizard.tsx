@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
 import {
   FiCheck,
@@ -28,7 +29,6 @@ type SetupValues = {
   databaseName: string;
   databaseUser: string;
   databasePassword: string;
-  tablePrefix: string;
   forumName: string;
   forumUrl: string;
   contactEmail: string;
@@ -47,7 +47,6 @@ const initialValues: SetupValues = {
   databaseName: "",
   databaseUser: "",
   databasePassword: "",
-  tablePrefix: "forum_",
   forumName: "",
   forumUrl: "",
   contactEmail: "",
@@ -174,6 +173,8 @@ export default function InitWizard({
   const [completedMigrations, setCompletedMigrations] = useState<string[]>([]);
   const [pendingMigrations, setPendingMigrations] = useState<string[]>([]);
   const [migrationError, setMigrationError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [setupComplete, setSetupComplete] = useState(false);
   const databaseBusy =
     connectionStatus === "testing" || migrationStatus === "running";
 
@@ -186,8 +187,7 @@ export default function InitWizard({
       key === "databasePort" ||
       key === "databaseName" ||
       key === "databaseUser" ||
-      key === "databasePassword" ||
-      key === "tablePrefix"
+      key === "databasePassword"
     ) {
       setConnectionStatus("idle");
       setConnectionError("");
@@ -226,9 +226,6 @@ export default function InitWizard({
       }
       if (!/^\d+$/.test(values.databasePort) || Number(values.databasePort) < 1 || Number(values.databasePort) > 65535) {
         return "Enter a valid database port (1–65535).";
-      }
-      if (values.tablePrefix && !/^[a-zA-Z0-9_]+$/.test(values.tablePrefix)) {
-        return "The table prefix can contain only letters, numbers, and underscores.";
       }
       if (connectionStatus !== "connected") {
         return "Test the database connection before continuing.";
@@ -499,55 +496,136 @@ export default function InitWizard({
     setStep((current) => Math.max(current - 1, 0));
   }
 
-  function submitSetup(event: FormEvent<HTMLFormElement>) {
+  async function submitSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (step < steps.length - 1) {
+      goNext();
+      return;
+    }
+    if (isSubmitting || setupComplete) return;
+
+    setError("");
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/init/complete", {
+        method: "POST",
+        headers: requestHeaders(),
+        body: JSON.stringify({
+          ...databasePayload(),
+          autoMigrateOnStartup: values.autoMigrate,
+          forum: {
+            name: values.forumName,
+            url: values.forumUrl,
+            contactEmail: values.contactEmail,
+            timezone: values.timezone,
+          },
+          administrator: {
+            username: values.adminUsername,
+            email: values.adminEmail,
+            password: values.adminPassword,
+          },
+        }),
+      });
+
+      const result: unknown = await response.json();
+      if (!response.ok) {
+        const message =
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : "Could not finish forum setup.";
+        throw new Error(message);
+      }
+      if (
+        typeof result !== "object" ||
+        result === null ||
+        !("ok" in result) ||
+        result.ok !== true
+      ) {
+        throw new Error("The server returned an invalid setup response.");
+      }
+
+      setSetupComplete(true);
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "Could not finish forum setup. Try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] px-4 py-8 text-slate-700 sm:py-12">
       <div className="mx-auto max-w-[920px]">
         <section className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-          <nav aria-label="Installation progress" className="border-b border-slate-200 bg-slate-50">
-            <ol className="grid grid-cols-2 sm:grid-cols-5">
-              {steps.map(({ title, icon: Icon }, index) => {
-                const isCurrent = index === step;
-                const isComplete = index < step;
+          {setupComplete ? (
+            <div className="px-5 py-12 text-center sm:px-8">
+              <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                <FiCheck className="size-6" aria-hidden="true" />
+              </span>
+              <h2 className="mt-4 text-lg font-semibold text-slate-800">Setup complete</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
+                Your forum is configured and the administrator account is ready.
+              </p>
+              <Link
+                href="/"
+                className="mt-6 inline-flex items-center gap-1 border border-[#286a9b] bg-[#327db4] px-4 py-2 text-xs font-medium text-white hover:bg-[#286a9b]"
+              >
+                Go to forum
+                <FiChevronRight aria-hidden="true" />
+              </Link>
+            </div>
+          ) : (
+            <>
+              <nav
+                aria-label="Installation progress"
+                className="border-b border-slate-200 bg-slate-50"
+              >
+                <ol className="grid grid-cols-2 sm:grid-cols-5">
+                  {steps.map(({ title, icon: Icon }, index) => {
+                    const isCurrent = index === step;
+                    const isComplete = index < step;
 
-                return (
-                  <li
-                    key={title}
-                    aria-current={isCurrent ? "step" : undefined}
-                    className={`flex min-h-14 items-center gap-2 border-b-2 px-3 py-2.5 text-xs sm:justify-center ${
-                      isCurrent
-                        ? "border-b-[#327db4] bg-white font-medium text-[#327db4]"
-                        : isComplete
-                          ? "border-b-transparent text-slate-600"
-                          : "border-b-transparent text-slate-400"
-                    }`}
-                  >
-                    <span
-                      className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
-                        isCurrent
-                          ? "border-[#327db4] bg-[#327db4] text-white"
-                          : isComplete
-                            ? "border-emerald-600 bg-emerald-600 text-white"
-                            : "border-slate-300 bg-white"
-                      }`}
-                    >
-                      {isComplete ? (
-                        <FiCheck className="size-3.5" aria-hidden="true" />
-                      ) : (
-                        <Icon className="size-3.5" aria-hidden="true" />
-                      )}
-                    </span>
-                    <span>{title}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
+                    return (
+                      <li
+                        key={title}
+                        aria-current={isCurrent ? "step" : undefined}
+                        className={`flex min-h-14 items-center gap-2 border-b-2 px-3 py-2.5 text-xs sm:justify-center ${
+                          isCurrent
+                            ? "border-b-[#327db4] bg-white font-medium text-[#327db4]"
+                            : isComplete
+                              ? "border-b-transparent text-slate-600"
+                              : "border-b-transparent text-slate-400"
+                        }`}
+                      >
+                        <span
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
+                            isCurrent
+                              ? "border-[#327db4] bg-[#327db4] text-white"
+                              : isComplete
+                                ? "border-emerald-600 bg-emerald-600 text-white"
+                                : "border-slate-300 bg-white"
+                          }`}
+                        >
+                          {isComplete ? (
+                            <FiCheck className="size-3.5" aria-hidden="true" />
+                          ) : (
+                            <Icon className="size-3.5" aria-hidden="true" />
+                          )}
+                        </span>
+                        <span>{title}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </nav>
 
-          <form onSubmit={submitSetup}>
+              <form onSubmit={submitSetup}>
             <div className="min-h-[390px] px-5 py-6 sm:px-8">
               {step === 0 && (
                 <div>
@@ -667,21 +745,6 @@ export default function InitWizard({
                         className={inputClassName}
                       />
                     </Field>
-                    <div className="sm:col-span-2">
-                      <Field
-                        label="Table prefix"
-                        htmlFor="tablePrefix"
-                        hint="Use a short prefix if this database is shared with another application."
-                      >
-                        <input
-                          id="tablePrefix"
-                          value={values.tablePrefix}
-                          onChange={(event) => update("tablePrefix", event.target.value)}
-                          disabled={databaseBusy}
-                          className={inputClassName}
-                        />
-                      </Field>
-                    </div>
                   </div>
 
                   <section className="mt-6 border border-slate-200">
@@ -1000,7 +1063,6 @@ export default function InitWizard({
                       <ReviewRow label="Host" value={`${values.databaseHost}:${values.databasePort}`} />
                       <ReviewRow label="Database" value={values.databaseName} />
                       <ReviewRow label="Username" value={values.databaseUser} />
-                      <ReviewRow label="Table prefix" value={values.tablePrefix || "(none)"} />
                       <ReviewRow label="Password" value={values.databasePassword ? "Provided" : "Not provided"} />
                       <ReviewRow label="Auto-migrate on startup" value={values.autoMigrate ? "Enabled" : "Disabled"} />
                     </ReviewSection>
@@ -1030,7 +1092,7 @@ export default function InitWizard({
               {step > 0 ? (
                 <button
                   type="button"
-                  disabled={databaseBusy}
+                  disabled={databaseBusy || isSubmitting}
                   onClick={goBack}
                   className="inline-flex items-center gap-1 border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
                 >
@@ -1043,7 +1105,7 @@ export default function InitWizard({
               {step < steps.length - 1 ? (
                 <button
                   type="button"
-                  disabled={databaseBusy}
+                  disabled={databaseBusy || isSubmitting}
                   onClick={goNext}
                   className="inline-flex items-center gap-1 border border-[#286a9b] bg-[#327db4] px-4 py-2 text-xs font-medium text-white hover:bg-[#286a9b] disabled:cursor-wait disabled:opacity-60"
                 >
@@ -1053,14 +1115,26 @@ export default function InitWizard({
               ) : (
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1 border border-[#286a9b] bg-[#327db4] px-4 py-2 text-xs font-medium text-white hover:bg-[#286a9b]"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-1 border border-[#286a9b] bg-[#327db4] px-4 py-2 text-xs font-medium text-white hover:bg-[#286a9b] disabled:cursor-wait disabled:opacity-60"
                 >
-                  Finish setup
-                  <FiCheck aria-hidden="true" />
+                  {isSubmitting ? (
+                    <>
+                      <FiLoader className="animate-spin" aria-hidden="true" />
+                      Finishing setup...
+                    </>
+                  ) : (
+                    <>
+                      Finish setup
+                      <FiCheck aria-hidden="true" />
+                    </>
+                  )}
                 </button>
               )}
             </footer>
-          </form>
+              </form>
+            </>
+          )}
         </section>
 
         <a

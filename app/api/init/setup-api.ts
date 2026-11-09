@@ -1,7 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
-import { access } from "node:fs/promises";
-import { join } from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
+import { isForumConfigPresent } from "@/lib/database/setup-state";
 
 const requestWindowMs = 60_000;
 const maxAttemptsPerWindow = 8;
@@ -52,20 +51,7 @@ async function setupIsEnabled() {
     return false;
   }
 
-  try {
-    await access(join(process.cwd(), "config.json"));
-    return false;
-  } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
-      return true;
-    }
-    throw error;
-  }
+  return !(await isForumConfigPresent());
 }
 
 function hasValidSetupToken(request: NextRequest) {
