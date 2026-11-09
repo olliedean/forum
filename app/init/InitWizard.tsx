@@ -66,7 +66,7 @@ const initialValues: SetupValues = {
   autoMigrate: false,
 };
 
-type ConnectionStatus = "idle" | "testing" | "connected";
+type ConnectionStatus = "idle" | "testing" | "connected" | "failed";
 type MigrationStatus = "idle" | "running" | "complete";
 
 function wait(duration: number) {
@@ -102,13 +102,17 @@ function Field({
   );
 }
 
-export default function InitWizard() {
+export default function InitWizard({
+  setupTokenRequired,
+}: {
+  setupTokenRequired: boolean;
+}) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(initialValues);
   const [error, setError] = useState("");
+  const [setupToken, setSetupToken] = useState("");
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("idle");
-  const [connectionProgress, setConnectionProgress] = useState(0);
-  const [connectionStage, setConnectionStage] = useState("");
+  const [connectionError, setConnectionError] = useState("");
   const [migrationStatus, setMigrationStatus] = useState<MigrationStatus>("idle");
   const [migrationProgress, setMigrationProgress] = useState(0);
   const [completedMigrations, setCompletedMigrations] = useState(0);
@@ -128,8 +132,7 @@ export default function InitWizard() {
       key === "tablePrefix"
     ) {
       setConnectionStatus("idle");
-      setConnectionProgress(0);
-      setConnectionStage("");
+      setConnectionError("");
       setMigrationStatus("idle");
       setMigrationProgress(0);
       setCompletedMigrations(0);
@@ -215,26 +218,51 @@ export default function InitWizard() {
     }
 
     setError("");
+    setConnectionError("");
     setConnectionStatus("testing");
-    setConnectionProgress(0);
-    setConnectionStage("Opening connection");
     setMigrationStatus("idle");
-    setMigrationProgress(0);
     setCompletedMigrations(0);
 
-    const stages = [
-      { label: "Opening connection", progress: 25 },
-      { label: "Checking credentials", progress: 60 },
-      { label: "Connection ready", progress: 100 },
-    ];
+    try {
+      const response = await fetch("/api/init/test-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(setupToken ? { "X-Forum-Setup-Token": setupToken } : {}),
+        },
+        body: JSON.stringify({
+          database: {
+            type: values.databaseType,
+            host: values.databaseHost,
+            port: Number(values.databasePort),
+            database: values.databaseName,
+            username: values.databaseUser,
+            password: values.databasePassword,
+          },
+        }),
+      });
 
-    for (const stage of stages) {
-      setConnectionStage(stage.label);
-      setConnectionProgress(stage.progress);
-      await wait(450);
+      const result: unknown = await response.json();
+      if (!response.ok) {
+        const message =
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : "Database connection test failed.";
+        throw new Error(message);
+      }
+
+      setConnectionStatus("connected");
+    } catch (connectionFailure) {
+      setConnectionStatus("failed");
+      setConnectionError(
+        connectionFailure instanceof Error
+          ? connectionFailure.message
+          : "Database connection test failed. Try again.",
+      );
     }
-
-    setConnectionStatus("connected");
   }
 
   async function runMigrations() {
@@ -326,6 +354,31 @@ export default function InitWizard() {
                     Enter the connection settings for the database this forum will use.
                   </p>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {setupTokenRequired && (
+                      <div className="sm:col-span-2">
+                        <Field
+                          label="Setup access token"
+                          htmlFor="setupToken"
+                          hint="Enter the token configured by the server administrator."
+                        >
+                          <input
+                            id="setupToken"
+                            type="password"
+                            autoComplete="off"
+                            required
+                            value={setupToken}
+                            onChange={(event) => {
+                              setSetupToken(event.target.value);
+                              setConnectionStatus("idle");
+                              setConnectionError("");
+                              setMigrationStatus("idle");
+                            }}
+                            disabled={databaseBusy}
+                            className={inputClassName}
+                          />
+                        </Field>
+                      </div>
+                    )}
                     <Field label="Database type" htmlFor="databaseType">
                       <select
                         id="databaseType"
@@ -429,9 +482,16 @@ export default function InitWizard() {
                             {connectionStatus === "connected"
                               ? "Connection successful"
                               : connectionStatus === "testing"
-                                ? connectionStage
+                                ? "Connecting to database..."
+                                : connectionStatus === "failed"
+                                  ? "Connection failed"
                                 : "Check the database settings"}
                           </p>
+                          {connectionError && (
+                            <p className="mt-1 max-w-xl text-[11px] leading-4 text-red-700" role="alert">
+                              {connectionError}
+                            </p>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -457,15 +517,11 @@ export default function InitWizard() {
                       {connectionStatus === "testing" && (
                         <div
                           aria-label="Connection test progress"
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-valuenow={connectionProgress}
                           className="h-1.5 overflow-hidden bg-slate-100"
                           role="progressbar"
                         >
                           <div
-                            className="h-full bg-[#327db4] transition-[width] duration-300"
-                            style={{ width: `${connectionProgress}%` }}
+                            className="h-full w-1/3 animate-pulse bg-[#327db4]"
                           />
                         </div>
                       )}
@@ -744,8 +800,9 @@ export default function InitWizard() {
               {step > 0 ? (
                 <button
                   type="button"
+                  disabled={databaseBusy}
                   onClick={goBack}
-                  className="inline-flex items-center gap-1 border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="inline-flex items-center gap-1 border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
                 >
                   <FiChevronLeft aria-hidden="true" />
                   Back
@@ -756,8 +813,9 @@ export default function InitWizard() {
               {step < steps.length - 1 ? (
                 <button
                   type="button"
+                  disabled={databaseBusy}
                   onClick={goNext}
-                  className="inline-flex items-center gap-1 border border-[#286a9b] bg-[#327db4] px-4 py-2 text-xs font-medium text-white hover:bg-[#286a9b]"
+                  className="inline-flex items-center gap-1 border border-[#286a9b] bg-[#327db4] px-4 py-2 text-xs font-medium text-white hover:bg-[#286a9b] disabled:cursor-wait disabled:opacity-60"
                 >
                   {step === 0 ? "Start installation" : "Continue"}
                   <FiChevronRight aria-hidden="true" />

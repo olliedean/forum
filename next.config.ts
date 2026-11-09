@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  serverExternalPackages: ["knex", "pg", "mysql2"],
   turbopack: {
     rules: {
       "*.css": {
