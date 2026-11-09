@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { sessionCookieName } from "./session";
+import { isSameOriginRequest } from "@/lib/http/same-origin";
 
 const requestWindowMs = 60_000;
 const maxAttemptsPerWindow = 10;
@@ -24,26 +25,6 @@ export function noStoreJson(
   return NextResponse.json(body, { ...init, headers });
 }
 
-function isSameOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  const host = (
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host")
-  )
-    ?.split(",")[0]
-    ?.trim();
-  const protocol =
-    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ??
-    request.nextUrl.protocol.replace(":", "");
-  if (!origin || !host) return false;
-
-  try {
-    const originUrl = new URL(origin);
-    return originUrl.host === host && originUrl.protocol === `${protocol}:`;
-  } catch {
-    return false;
-  }
-}
-
 function isRateLimited(request: NextRequest): boolean {
   const address =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -65,7 +46,7 @@ function isRateLimited(request: NextRequest): boolean {
 }
 
 export function authorizeAuthMutation(request: NextRequest): NextResponse | null {
-  if (!isSameOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return noStoreJson({ error: "Request origin could not be verified." }, { status: 403 });
   }
   if (isRateLimited(request)) {

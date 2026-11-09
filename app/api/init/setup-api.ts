@@ -1,32 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { isForumConfigReady } from "@/lib/database/setup-state";
+import { isSameOriginRequest } from "@/lib/http/same-origin";
 
 const requestWindowMs = 60_000;
 const maxAttemptsPerWindow = 8;
 const attemptsByAddress = new Map<string, { count: number; resetAt: number }>();
-
-function isSameOrigin(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  const host = (
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host")
-  )
-    ?.split(",")[0]
-    ?.trim();
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const protocol =
-    forwardedProto?.split(",")[0]?.trim() ??
-    request.nextUrl.protocol.replace(":", "");
-
-  if (!origin || !host) return false;
-
-  try {
-    const originUrl = new URL(origin);
-    return originUrl.host === host && originUrl.protocol === `${protocol}:`;
-  } catch {
-    return false;
-  }
-}
 
 function isRateLimited(request: NextRequest) {
   const address =
@@ -78,7 +57,7 @@ export async function authorizeSetupRequest(
     );
   }
 
-  if (!isSameOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return NextResponse.json(
       { error: "Request origin could not be verified." },
       { status: 403, headers: { "Cache-Control": "no-store" } },
