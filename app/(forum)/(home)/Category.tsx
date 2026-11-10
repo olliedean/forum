@@ -39,7 +39,7 @@ export default function Category({ category }: { category: CategorySummary }) {
               ) : (
                 <span>Deleted user</span>
               )}
-              {" "}({latest.userId ?? "—"}) ·{" "}
+              {" "} ·{" "}
               <time dateTime={new Date(latest.createdAt).toISOString()}>
                 {formatRelativeTime(latest.createdAt)}
               </time>

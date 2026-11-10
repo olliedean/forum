@@ -11,11 +11,11 @@ export default function CategoryThreadItem({
   thread: CategoryThread;
 }) {
   return (
-    <article className="grid min-h-[76px] grid-cols-[44px_minmax(0,1fr)_58px_58px] border-b border-slate-200 bg-white transition-colors hover:bg-slate-50 sm:grid-cols-[48px_minmax(0,1fr)_72px_72px_150px]">
+    <article className="grid grid-cols-[44px_minmax(0,1fr)_58px_58px] border-b border-slate-200 bg-white transition-colors hover:bg-slate-50 sm:grid-cols-[48px_minmax(0,1fr)_72px_72px_150px]">
       <div className="flex items-center justify-center text-slate-500">
         <FiMessageSquare aria-hidden="true" className="size-5" />
       </div>
-      <div className="min-w-0 self-center py-3 pr-2">
+      <div className="min-w-0 self-center py-2 pr-2">
         <Link
           href={`/${categorySlug}/${thread.publicId}`}
           className="block truncate text-[15px] font-medium text-[#327db4] hover:underline"
