@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import LexicalEditor from "@/app/_components/LexicalEditor";
 
 type NewThreadPageProps = {
   params: Promise<{ slug: string }>;
@@ -18,11 +19,9 @@ export async function generateMetadata({
   };
 }
 
-async function NewThreadContent({ params }: NewThreadPageProps) {
+async function NewThreadContent() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-
-  const { slug } = await params;
 
   return (
     <div className="grid grid-cols-1 overflow-hidden rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-xl md:grid-cols-[250px_minmax(0,1fr)]">
@@ -45,7 +44,9 @@ async function NewThreadContent({ params }: NewThreadPageProps) {
                 <input
                   id="thread-title"
                   type="text"
-                  defaultValue="Lorem ipsum dolor sit amet, consectetur adipiscing elit"
+                  name="title"
+                  placeholder="Enter a thread title"
+                  required
                   className="w-full rounded-sm border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#327db4]"
                 />
               </div>
@@ -53,17 +54,16 @@ async function NewThreadContent({ params }: NewThreadPageProps) {
 
             <div className="grid sm:grid-cols-[150px_minmax(0,1fr)]">
               <label
-                htmlFor="thread-body"
+                htmlFor="thread-editor"
                 className="border-b border-slate-200 bg-slate-50 px-3 py-3 text-xs font-medium text-slate-600 sm:border-b-0 sm:border-r"
               >
                 Message
               </label>
               <div className="p-3">
-                <textarea
-                  id="thread-body"
-                  rows={14}
-                  defaultValue="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-                  className="w-full resize-y rounded-sm border border-slate-300 bg-white px-2.5 py-2 text-sm leading-6 text-slate-700 outline-none focus:border-[#327db4]"
+                <LexicalEditor
+                  id="thread-editor"
+                  name="body"
+                  ariaLabel="Thread message"
                 />
               </div>
             </div>
@@ -83,7 +83,7 @@ async function NewThreadContent({ params }: NewThreadPageProps) {
   );
 }
 
-export default function NewThreadPage({ params }: NewThreadPageProps) {
+export default function NewThreadPage() {
   return (
     <Suspense
       fallback={
@@ -97,7 +97,7 @@ export default function NewThreadPage({ params }: NewThreadPageProps) {
         </div>
       }
     >
-      <NewThreadContent params={params} />
+      <NewThreadContent />
     </Suspense>
   );
 }

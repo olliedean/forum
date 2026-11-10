@@ -11,6 +11,9 @@ importers:
       '@lexical/clipboard':
         specifier: ^0.53.0
         version: 0.53.0(typescript@5.9.3)
+      '@lexical/code':
+        specifier: ^0.53.0
+        version: 0.53.0(typescript@5.9.3)
       '@lexical/extension':
         specifier: ^0.53.0
         version: 0.53.0(typescript@5.9.3)
@@ -20,10 +23,19 @@ importers:
       '@lexical/html':
         specifier: ^0.53.0
         version: 0.53.0(typescript@5.9.3)
+      '@lexical/link':
+        specifier: ^0.53.0
+        version: 0.53.0(typescript@5.9.3)
+      '@lexical/list':
+        specifier: ^0.53.0
+        version: 0.53.0(typescript@5.9.3)
       '@lexical/react':
         specifier: ^0.53.0
         version: 0.53.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)(yjs@13.6.33)
       '@lexical/rich-text':
+        specifier: ^0.53.0
+        version: 0.53.0(typescript@5.9.3)
+      '@lexical/table':
         specifier: ^0.53.0
         version: 0.53.0(typescript@5.9.3)
       knex:
@@ -442,6 +454,14 @@ packages:
 
   '@lexical/code-core@0.53.0':
     resolution: {integrity: sha512-u684OEtS6lb5IQKeFFAPlNfWhdcnKi2ZctOEgK5o2rHd01FF0pG/J57gbTzcpwnyfw98s6c5SnBuxTAXA7EWsA==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/code@0.53.0':
+    resolution: {integrity: sha512-j27qAWUQJ5NTKwfq9NaBwuM5ljC85zmrOUGqSmmSCxlatoA/P7WmK7BEk2zvI3pxC0drY0RvjnXQ6xy79a08VA==}
     peerDependencies:
       typescript: '>=5.2'
     peerDependenciesMeta:
@@ -2849,6 +2869,14 @@ snapshots:
       '@lexical/html': 0.53.0(typescript@5.9.3)
       '@lexical/internal': 0.53.0(typescript@5.9.3)
       '@lexical/utils': 0.53.0(typescript@5.9.3)
+      lexical: 0.53.0(typescript@5.9.3)
+    optionalDependencies:
+      typescript: 5.9.3
+
+  '@lexical/code@0.53.0(typescript@5.9.3)':
+    dependencies:
+      '@lexical/code-core': 0.53.0(typescript@5.9.3)
+      '@lexical/extension': 0.53.0(typescript@5.9.3)
       lexical: 0.53.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
