@@ -1,75 +1,121 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { FiSearch } from "react-icons/fi";
+import { notFound } from "next/navigation";
+import { getThreadMetadata, getThreadPageData, parsePage } from "@/lib/forum/data";
+import { formatRelativeTime } from "@/lib/forum/format";
 import ThreadPagination from "../ThreadPagination";
 
 type ThreadPageProps = {
-  params: {
-    slug: string;
-    thread: string;
-  };
+  params: Promise<{ slug: string; thread: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
 };
 
 export async function generateMetadata({
   params,
 }: ThreadPageProps): Promise<Metadata> {
+  const { slug, thread } = await params;
+  const data = await getThreadMetadata(slug, thread);
+  if (!data) return { title: "Thread not found - Forum" };
   return {
-    title: `Thread Title - Forum`,
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    title: `${data.title} - ${data.categoryName} - Forum`,
+    description: `Posts in ${data.title}.`,
   };
 }
 
-export default function ThreadPage() {
-  return(
+export default async function ThreadPage({ params, searchParams }: ThreadPageProps) {
+  const [{ slug, thread: publicId }, query] = await Promise.all([params, searchParams]);
+  const data = await getThreadPageData(slug, publicId, parsePage(query.page));
+  if (!data) notFound();
+
+  const hrefForPage = (page: number) =>
+    page === 1
+      ? `/${data.category.slug}/${data.thread.publicId}`
+      : `/${data.category.slug}/${data.thread.publicId}?page=${page}`;
+  const paginationProps = {
+    currentPage: data.page,
+    totalPages: data.pageCount,
+    hrefForPage,
+    label: "Post",
+  };
+
+  return (
     <div className="overflow-hidden rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-xl">
       <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0">
-          <h1 className="text-[26px] font-bold leading-8 text-slate-700">Thread Title</h1>
+          <h1 className="text-[26px] font-bold leading-8 text-slate-700">
+            {data.thread.title}
+          </h1>
           <p className="text-sm text-slate-500">
-            0 replies, posted 10 mins ago by <span className="font-medium text-slate-700">User</span>
+            {Math.max(data.postCount - 1, 0)} replies · Posted by{" "}
+            {data.thread.authorId && data.thread.authorName ? (
+              <>
+                <Link
+                  href={`/u/${encodeURIComponent(data.thread.authorId)}`}
+                  className="font-medium text-[#327db4] hover:underline"
+                >
+                  {data.thread.authorName}
+                </Link>{" "}
+              </>
+            ) : (
+              <span className="font-medium text-slate-700">Deleted user</span>
+            )}{" "}
+            <time dateTime={new Date(data.thread.createdAt).toISOString()}>
+              {formatRelativeTime(data.thread.createdAt)}
+            </time>
+            <span className="ml-2">{data.thread.viewsCount} views</span>
           </p>
         </div>
-        <form
-          action="#"
-          className="flex h-[38px] w-full shrink-0 overflow-hidden rounded-md border border-slate-200 sm:w-[250px]"
-        >
-          <input
-            placeholder="Search..."
-            className="min-w-0 flex-1 px-3 text-sm outline-none placeholder:text-slate-400"
-          />
-          <button
-            type="submit"
-            className="flex w-[42px] items-center justify-center bg-[#327db4] text-white transition-colors hover:bg-[#286a9b]"
-          >
-            <FiSearch className="size-4" />
-          </button>
-        </form>
       </header>
-      <ThreadPagination />
-      {Array.from({ length: 10 }, (_, index) => (
-        <div key={index}>
-          <header className="bg-gray-100 px-2 py-1 text-xs text-slate-600 border-y border-slate-200">
-            0 mins ago <span className="text-slate-500">from</span> United Kingdom
-          </header>
-          <div className="grid grid-cols-1 md:grid-cols-[250px_minmax(0,1fr)]">
-            {/* postbit */}
-            <div className="relative order-2 bg-slate-50 md:order-1 border-r border-slate-200 group">
-              {/* work in progress for the bg. will probably switch to bg-background for scaling */}
-              <img src="/postbit-bg-example.avif" alt="postbit" className="grayscale opacity-20 group-hover:opacity-100 transition-all group-hover:transform group-hover:scale-105 group-hover:grayscale-0" />
-              <Link
-              className="absolute pl-9 top-6 z-10 py-2 font-bold flex items-center gap-2 transition-all w-[calc(100%+calc(var(--spacing)*1.5))] group-hover:text-white group-hover:bg-black/20 group-hover:backdrop-blur-sm"
-              href="/u/w9dw"
-              >
-                  ollie <span className="text-xs font-normal text-slate-200 bg-slate-400 px-2 rounded">1</span>
-              </Link>
+      <ThreadPagination {...paginationProps} />
+      <section aria-label="Posts">
+        {data.posts.map((post) => (
+          <article key={post.id} className="border-b border-slate-200 last:border-b-0">
+            <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-y border-slate-200 bg-gray-100 px-3 py-2 text-xs text-slate-600">
+              <span>
+                Posted by{" "}
+                {post.authorId && post.authorName ? (
+                  <>
+                    <Link
+                      href={`/u/${encodeURIComponent(post.authorId)}`}
+                      className="font-medium text-[#327db4] hover:underline"
+                    >
+                      {post.authorName}
+                    </Link>{" "}
+                  </>
+                ) : (
+                  <span className="font-medium">Deleted user</span>
+                )}{" "}
+                <time dateTime={new Date(post.createdAt).toISOString()}>
+                  {formatRelativeTime(post.createdAt)}
+                </time>
+              </span>
+            </header>
+            <div className="grid min-h-48 grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)]">
+              <aside className="border-b border-slate-200 bg-slate-50 p-4 md:border-b-0 md:border-r">
+                {post.authorId && post.authorName ? (
+                  <Link
+                    href={`/u/${encodeURIComponent(post.authorId)}`}
+                    className="font-semibold text-[#327db4] hover:underline"
+                  >
+                    {post.authorName}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-slate-600">Deleted user</span>
+                )}
+              </aside>
+              <div className="min-w-0 whitespace-pre-wrap break-words p-4 text-sm leading-6 text-slate-700">
+                {post.body}
+              </div>
             </div>
-            {/* post content */}
-            <main className="order-1 min-w-0 min-h-72 md:order-2 p-4 text-sm">
-              post content
-            </main>
-          </div>
-        </div>
-      ))}
+          </article>
+        ))}
+        {data.posts.length === 0 && (
+          <p className="px-5 py-8 text-center text-sm text-slate-500">
+            This thread has no visible posts.
+          </p>
+        )}
+      </section>
+      <ThreadPagination {...paginationProps} />
     </div>
-  )
+  );
 }

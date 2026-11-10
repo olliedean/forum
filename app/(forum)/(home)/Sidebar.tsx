@@ -1,5 +1,7 @@
 import RecentThreadItem from "./RecentThreadItem";
-export default function Sidebar() {
+import type { HomepageData } from "@/lib/forum/data";
+
+export default function Sidebar({ data }: { data: HomepageData }) {
   return (
     <aside className="border-r border-[#e5e7eb]">
       <section>
@@ -7,9 +9,12 @@ export default function Sidebar() {
           Latest Threads
         </h2>
         <ul>
-          {Array.from({ length: 10 }, (_, index) => (
-            <RecentThreadItem key={index} />
+          {data.latestThreads.map((thread) => (
+            <RecentThreadItem key={thread.publicId} {...thread} />
           ))}
+          {data.latestThreads.length === 0 && (
+            <li className="px-3 py-4 text-xs text-slate-500">No threads yet.</li>
+          )}
         </ul>
       </section>
       <section>
@@ -18,28 +23,26 @@ export default function Sidebar() {
         </h2>
         <dl className="space-y-0 px-3 py-3 text-[12px] leading-5">
             <div className="flex justify-between gap-2">
-              <span>Lorem ipsum</span>
-              <span><span className="mr-1 text-[10px] text-emerald-600">(+0)</span>0</span>
+              <dt>Registered Users</dt>
+              <dd>{data.registeredUsers}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <span>Registered Users</span>
-              <span><span className="mr-1 text-[10px] text-emerald-600">(+0)</span>0</span>
+              <dt>Posts</dt>
+              <dd>{data.totalPosts}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <span>Posts </span>
-              <span><span className="mr-1 text-[10px] text-emerald-600">(+0)</span>0</span>
+              <dt>Threads</dt>
+              <dd>{data.totalThreads}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <span>Threads</span>
-              <span><span className="mr-1 text-[10px] text-emerald-600">(+0)</span>0</span>
+              <dt>Ratings</dt>
+              <dd>
+                <span className="mr-1 text-[10px] text-emerald-600">(+0)</span>0
+              </dd>
             </div>
             <div className="flex justify-between gap-2">
-              <span>Ratings</span>
-              <span><span className="mr-1 text-[10px] text-emerald-600">(+0)</span>0</span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span>Online Users</span>
-              <span>0</span>
+              <dt>Online Users</dt>
+              <dd>0</dd>
             </div>
         </dl>
       </section>
