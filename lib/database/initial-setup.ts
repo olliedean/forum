@@ -100,6 +100,38 @@ async function saveInitialSetup(
         password_hash: passwordHash,
         ranks: JSON.stringify(["admin"]),
       });
+      const administratorRecord = await transaction("users")
+        .where({ email: administrator.email })
+        .first("id");
+      if (!administratorRecord) {
+        throw new Error("Could not find the administrator after creating the account.");
+      }
+
+      const defaultCategory = await transaction("categories")
+        .where({ name: "General" })
+        .whereExists(function () {
+          this.select("*")
+            .from("threads")
+            .whereRaw("threads.category_id = categories.id")
+            .where({ title: "Welcome to the forum" });
+        })
+        .orderBy("id", "desc")
+        .first("id");
+
+      if (defaultCategory) {
+        const defaultThreads = transaction("threads")
+          .where({ category_id: defaultCategory.id, title: "Welcome to the forum" })
+          .whereNull("user_id")
+          .update({ user_id: administratorRecord.id });
+        const threadIds = transaction("threads")
+          .select("id")
+          .where({ category_id: defaultCategory.id, title: "Welcome to the forum" });
+        await defaultThreads;
+        await transaction("posts")
+          .whereIn("thread_id", threadIds)
+          .whereNull("user_id")
+          .update({ user_id: administratorRecord.id });
+      }
 
       await transaction("forum_settings").insert([
         { key: "forum_name", value: forum.name },
