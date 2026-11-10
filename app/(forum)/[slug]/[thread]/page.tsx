@@ -37,9 +37,8 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
     hrefForPage,
     label: "Post",
   };
-
   return (
-    <div className="overflow-hidden rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-xl">
+      <div className="overflow-hidden rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-xl">
       <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0">
           <h1 className="text-[26px] font-bold leading-8 text-slate-700">
@@ -116,6 +115,6 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
         )}
       </section>
       <ThreadPagination {...paginationProps} />
-    </div>
+      </div>
   );
 }

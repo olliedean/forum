@@ -18,6 +18,11 @@ type CategoryRow = {
   is_visible: boolean;
 };
 
+export type ForumBreadcrumb = {
+  label: string;
+  href?: string;
+};
+
 type CategoryActivity = {
   category_id: string | number;
   thread_public_id: string;
@@ -167,6 +172,119 @@ function normalizePage(value: number, pageCount: number): number {
   if (!Number.isSafeInteger(value) || value < 1) return 1;
   return Math.min(value, Math.max(pageCount, 1));
 }
+
+async function buildCategoryBreadcrumbs(
+  database: Knex,
+  categoryId: string | number,
+): Promise<ForumBreadcrumb[]> {
+  const categories = await database<CategoryRow>("categories")
+    .select("id", "parent_id", "name", "slug", "description", "sort_order", "is_visible")
+    .where({ is_visible: true });
+  const categoryById = new Map(categories.map((category) => [String(category.id), category]));
+  const path: CategoryRow[] = [];
+  const visited = new Set<string>();
+  let current = categoryById.get(String(categoryId));
+
+  while (current && !visited.has(String(current.id))) {
+    visited.add(String(current.id));
+    path.push(current);
+    current = current.parent_id
+      ? categoryById.get(String(current.parent_id))
+      : undefined;
+  }
+
+  return path.reverse().map((category, index) => ({
+    label: category.name,
+    ...(index < path.length - 1 ? { href: `/${category.slug}` } : {}),
+  }));
+}
+
+export const getForumBreadcrumbs = cache(
+  async (pathname: string): Promise<ForumBreadcrumb[]> => {
+    let segments: string[];
+    try {
+      segments = pathname
+        .split("/")
+        .filter(Boolean)
+        .map((segment) => decodeURIComponent(segment));
+    } catch {
+      return [];
+    }
+
+    if (segments.some((segment) => segment.includes("/") || segment.length > 200)) {
+      return [];
+    }
+    if (segments.length === 0) return [];
+    if (segments.length === 1 && segments[0] === "login") {
+      return [{ label: "Login" }];
+    }
+    if (segments.length === 1 && segments[0] === "events") {
+      return [{ label: "Event Log" }];
+    }
+
+    return withForumDatabase(async (database) => {
+      if (segments.length === 1) {
+        const category = await database("categories")
+          .select("id")
+          .where({ slug: segments[0], is_visible: true })
+          .first();
+        return category ? buildCategoryBreadcrumbs(database, category.id) : [];
+      }
+
+      if (segments.length === 2 && segments[1] === "new") {
+        const category = await database("categories")
+          .select("id", "slug")
+          .where({ slug: segments[0], is_visible: true })
+          .first();
+        if (!category) return [];
+        const crumbs = await buildCategoryBreadcrumbs(database, category.id);
+        return [
+          ...crumbs.map((crumb) => ({
+            ...crumb,
+            href: crumb.href ?? `/${category.slug}`,
+          })),
+          { label: "New Thread" },
+        ];
+      }
+
+      if (segments.length === 2 && segments[0] === "u") {
+        const user = await database("users")
+          .select("username")
+          .where({ id: segments[1] })
+          .first();
+        return user ? [{ label: user.username }] : [{ label: "User" }];
+      }
+
+      if (segments.length === 2) {
+        const thread = await database("threads")
+          .join("categories", "threads.category_id", "categories.id")
+          .select(
+            "categories.id as category_id",
+            "categories.slug as category_slug",
+            "threads.title",
+          )
+          .where({
+            "categories.slug": segments[0],
+            "categories.is_visible": true,
+            "threads.public_id": segments[1],
+          })
+          .first();
+        if (!thread) return [];
+
+        const crumbs = await buildCategoryBreadcrumbs(database, thread.category_id);
+        return [
+          ...crumbs.map((crumb) => ({
+            ...crumb,
+            href: crumb.href ?? `/${thread.category_slug}`,
+          })),
+          { label: thread.title },
+        ];
+      }
+
+      return [];
+    });
+  },
+);
 
 export const getHomepageData = cache(async (): Promise<HomepageData> =>
   withForumDatabase(async (database, forumName) => {

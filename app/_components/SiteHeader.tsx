@@ -2,17 +2,42 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaCalendar, FaHome } from "react-icons/fa";
 import { FiChevronDown, FiLogOut, FiLoader } from "react-icons/fi";
 import { useAuthSession } from "./useAuthSession";
 
-function formatSlug(slug: string) {
-  return slug
-    .split("-")
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+type SiteBreadcrumb = {
+  label: string;
+  href?: string;
+};
+
+function parseBreadcrumbPayload(value: unknown): SiteBreadcrumb[] {
+  if (typeof value !== "object" || value === null || !("items" in value)) {
+    throw new Error("Breadcrumb response was invalid.");
+  }
+  const items = value.items;
+  if (!Array.isArray(items)) throw new Error("Breadcrumb response was invalid.");
+
+  return items.map((item) => {
+    if (
+      typeof item !== "object" ||
+      item === null ||
+      !("label" in item) ||
+      typeof item.label !== "string" ||
+      (("href" in item) &&
+        item.href !== undefined &&
+        (typeof item.href !== "string" ||
+          !item.href.startsWith("/") ||
+          item.href.startsWith("//")))
+    ) {
+      throw new Error("Breadcrumb response was invalid.");
+    }
+    return {
+      label: item.label,
+      ...("href" in item && typeof item.href === "string" ? { href: item.href } : {}),
+    };
+  });
 }
 
 export default function SiteHeader() {
@@ -25,9 +50,49 @@ export default function SiteHeader() {
     signOut: signOutSession,
   } = useAuthSession();
   const accountMenu = useRef<HTMLDetailsElement>(null);
-  const categoryMatch = pathname.match(/^\/([^/]+)$/);
-  const categorySlug = categoryMatch?.[1] ?? "";
-  const categoryName = categorySlug ? formatSlug(categorySlug) : "";
+  const [breadcrumbResult, setBreadcrumbResult] = useState<{
+    pathname: string;
+    items: SiteBreadcrumb[];
+  } | null>(null);
+  const [breadcrumbFailure, setBreadcrumbFailure] = useState<{
+    pathname: string;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadBreadcrumbs() {
+      try {
+        const response = await fetch(
+          `/api/forum/breadcrumbs?path=${encodeURIComponent(pathname)}`,
+          { cache: "no-store", signal: controller.signal },
+        );
+        if (!response.ok) throw new Error("Could not load navigation breadcrumbs.");
+        const payload: unknown = await response.json();
+        if (controller.signal.aborted) return;
+        setBreadcrumbResult({
+          pathname,
+          items: parseBreadcrumbPayload(payload),
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setBreadcrumbFailure({
+          pathname,
+          message:
+            error instanceof Error ? error.message : "Could not load navigation breadcrumbs.",
+        });
+      }
+    }
+
+    void loadBreadcrumbs();
+    return () => controller.abort();
+  }, [pathname]);
+
+  const breadcrumbs =
+    breadcrumbResult?.pathname === pathname ? breadcrumbResult.items : null;
+  const breadcrumbError =
+    breadcrumbFailure?.pathname === pathname ? breadcrumbFailure.message : null;
 
   async function signOut() {
     if (await signOutSession()) {
@@ -47,18 +112,63 @@ export default function SiteHeader() {
           aria-label="Forum navigation"
           className="flex h-[40px] items-center justify-between border-b border-[#e5e7eb] text-[13px]"
         >
-          <div className="flex h-full items-center">
-          <Link href="/" aria-label="Home" className="flex overflow-hidden h-full items-center px-4 text-[#555] transition-colors hover:bg-slate-100 rounded-tl-xl">
-            <FaHome className="size-4" />
-          </Link>
-          {categoryName && (
-            <>
-              <span aria-hidden="true" className="text-slate-300">/</span>
-              <span className="flex h-full items-center px-3 text-slate-700">
-                {categoryName}
+          <div
+            role="group"
+            aria-label="Breadcrumb"
+            className="flex h-full min-w-0 items-center overflow-x-auto"
+          >
+            <Link
+              href="/"
+              aria-label="Home"
+              className="flex h-full shrink-0 items-center rounded-tl-xl px-4 text-[#555] transition-colors hover:bg-slate-100"
+            >
+              <FaHome className="size-4" />
+            </Link>
+            {breadcrumbError ? (
+              <span role="alert" className="px-2 text-xs text-red-700">
+                Breadcrumbs unavailable
               </span>
-            </>
-          )}
+            ) : breadcrumbs === null ? (
+              <span aria-live="polite" className="px-2 text-slate-400">
+                …
+              </span>
+            ) : breadcrumbs.length === 0 ? (
+              <></>
+            ) : (
+              <>
+                <span aria-hidden="true" className="shrink-0 text-slate-300">/</span>
+                {breadcrumbs.map((item, index) => {
+                  const isCurrent = index === breadcrumbs.length - 1;
+                  return (
+                    <span
+                      key={`${item.label}-${index}`}
+                      className="flex min-w-0 shrink-0 items-center gap-2"
+                    >
+                      {item.href && !isCurrent ? (
+                        <Link
+                          href={item.href}
+                          className="max-w-56 truncate px-1 text-slate-600 hover:text-[#327db4] hover:underline"
+                        >
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <span
+                          aria-current={isCurrent ? "page" : undefined}
+                          className={`max-w-64 truncate px-1 ${
+                            isCurrent ? "font-medium text-slate-700" : "text-slate-600"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      )}
+                      {!isCurrent && (
+                        <span aria-hidden="true" className="text-slate-300">/</span>
+                      )}
+                    </span>
+                  );
+                })}
+              </>
+            )}
           </div>
           <div className="flex h-full">
             {isLoading ? (
