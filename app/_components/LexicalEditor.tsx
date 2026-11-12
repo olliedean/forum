@@ -74,6 +74,7 @@ import { FaAlignCenter, FaAlignJustify, FaAlignLeft, FaAlignRight, FaCheck, FaCo
 type LexicalEditorProps = {
   id?: string;
   name?: string;
+  height?: number;
   initialHTML?: string;
   appendHTML?: { id: number; html: string } | null;
   placeholder?: string;
@@ -621,6 +622,7 @@ const autoLinkMatcher = createLinkMatcherWithRegExp(
 export default function LexicalEditor({
   id = "message-editor",
   name,
+  height = 200,
   initialHTML = "",
   appendHTML = null,
   placeholder = "Write your message...",
@@ -661,7 +663,8 @@ export default function LexicalEditor({
               <ContentEditable
                 id={id}
                 aria-label={ariaLabel}
-                className="min-h-72 px-3 py-2 text-sm leading-6 text-slate-700 outline-none"
+                className="px-3 py-2 text-sm leading-6 text-slate-700 outline-none"
+                style={{ minHeight: `${height}px` }}
               />
             }
             placeholder={

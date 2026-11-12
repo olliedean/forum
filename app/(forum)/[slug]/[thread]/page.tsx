@@ -69,7 +69,6 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
             <time dateTime={new Date(data.thread.createdAt).toISOString()}>
               {formatRelativeTime(data.thread.createdAt)}
             </time>
-            <span className="ml-2">{data.thread.viewsCount} views</span>
           </p>
         </div>
       </header>
@@ -134,22 +133,17 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
                       <span className="font-semibold text-slate-600">Deleted user</span>
                     )}
                   </aside>
-                  {post.bodyFormat === "html" ? (
                     <div
-                      className="min-w-0 break-words p-4 text-sm leading-6 text-slate-700 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:font-mono [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:my-1 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_pre]:my-3 [&_pre]:block [&_pre]:overflow-x-auto [&_pre]:rounded-sm [&_pre]:bg-slate-900 [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-xs [&_pre]:text-slate-100 [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-slate-300 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-slate-300 [&_th]:bg-slate-100 [&_th]:px-2 [&_th]:py-1.5 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_a]:text-[#286a9b] [&_a]:underline"
-                      dangerouslySetInnerHTML={{ __html: safeBody }}
-                    />
-                  ) : (
-                    <div className="min-w-0 whitespace-pre-wrap break-words p-4 text-sm leading-6 text-slate-700">
-                      {post.body}
+                      className="min-w-0 flex flex-col break-words p-4 text-sm leading-6 text-slate-700 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:font-mono [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:my-1 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_pre]:my-3 [&_pre]:block [&_pre]:overflow-x-auto [&_pre]:rounded-sm [&_pre]:bg-slate-900 [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-xs [&_pre]:text-slate-100 [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-slate-300 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-slate-300 [&_th]:bg-slate-100 [&_th]:px-2 [&_th]:py-1.5 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_a]:text-[#286a9b] [&_a]:underline"
+                    >
+                      <div dangerouslySetInnerHTML={{ __html: safeBody }} />
+                      {canReply ? (
+                        <footer className="flex justify-end mt-auto px-4 py-1">
+                          <ReplyToPostButton quotedHTML={quotedHTML} />
+                        </footer>
+                      ) : null}
                     </div>
-                  )}
                 </div>
-                {canReply ? (
-                  <footer className="flex justify-end border-t border-slate-200 bg-slate-50 px-4 py-2">
-                    <ReplyToPostButton quotedHTML={quotedHTML} />
-                  </footer>
-                ) : null}
               </article>
             );
           })}

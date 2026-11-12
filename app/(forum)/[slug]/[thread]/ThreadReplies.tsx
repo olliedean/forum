@@ -96,7 +96,7 @@ export function ThreadReplies({
           aria-labelledby="reply-heading"
           className="border-t border-slate-200 bg-white p-4 sm:p-5"
         >
-          <h2 id="reply-heading" className="mb-3 text-lg font-semibold text-slate-700">
+          <h2 className="mb-1 text-lg font-semibold text-slate-700">
             Post a reply
           </h2>
           <form onSubmit={submitReply}>
@@ -104,6 +104,7 @@ export function ThreadReplies({
               key={editorKey}
               id="thread-reply-editor"
               name="body"
+              height={150}
               ariaLabel="Reply message"
               placeholder="Write your reply..."
               appendHTML={appendHTML}
@@ -140,7 +141,7 @@ export function ReplyToPostButton({ quotedHTML }: { quotedHTML: string }) {
     <button
       type="button"
       onClick={() => context.replyToPost(quotedHTML)}
-      className="font-medium hover:underline"
+      className="font-medium text-xs hover:underline"
     >
       + Reply
     </button>
