@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getThreadMetadata, getThreadPageData, parsePage } from "@/lib/forum/data";
 import { formatRelativeTime } from "@/lib/forum/format";
+import { sanitizePostHtml } from "@/lib/forum/post-body";
 import ThreadPagination from "../ThreadPagination";
 
 type ThreadPageProps = {
@@ -102,9 +103,16 @@ export default async function ThreadPage({ params, searchParams }: ThreadPagePro
                   <span className="font-semibold text-slate-600">Deleted user</span>
                 )}
               </aside>
-              <div className="min-w-0 whitespace-pre-wrap break-words p-4 text-sm leading-6 text-slate-700">
-                {post.body}
-              </div>
+              {post.bodyFormat === "html" ? (
+                <div
+                  className="min-w-0 break-words p-4 text-sm leading-6 text-slate-700 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:font-mono [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:my-1 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_pre]:my-3 [&_pre]:block [&_pre]:overflow-x-auto [&_pre]:rounded-sm [&_pre]:bg-slate-900 [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-xs [&_pre]:text-slate-100 [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-slate-300 [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-slate-300 [&_th]:bg-slate-100 [&_th]:px-2 [&_th]:py-1.5 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_a]:text-[#286a9b] [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: sanitizePostHtml(post.body) }}
+                />
+              ) : (
+                <div className="min-w-0 whitespace-pre-wrap break-words p-4 text-sm leading-6 text-slate-700">
+                  {post.body}
+                </div>
+              )}
             </div>
           </article>
         ))}
