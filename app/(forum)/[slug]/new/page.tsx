@@ -7,6 +7,7 @@ import { getCategoryMetadata } from "@/lib/forum/data";
 
 type NewThreadPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ error?: string | string[] }>;
 };
 
 export async function generateMetadata({
@@ -22,12 +23,22 @@ export async function generateMetadata({
   };
 }
 
-async function NewThreadContent({ params }: NewThreadPageProps) {
+async function NewThreadContent({ params, searchParams }: NewThreadPageProps) {
   const { slug } = await params;
-  const user = await getCurrentUser();
+  const [user, query] = await Promise.all([
+    getCurrentUser(),
+    searchParams ?? Promise.resolve<{ error?: string | string[] }>({}),
+  ]);
   if (!user) redirect("/login");
 
   if (!(await getCategoryMetadata(slug))) notFound();
+
+  const error =
+    typeof query.error === "string"
+      ? query.error
+      : Array.isArray(query.error)
+        ? query.error[0]
+        : null;
 
   return (
       <div className="grid grid-cols-1 overflow-hidden rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-xl md:grid-cols-[250px_minmax(0,1fr)]">
@@ -38,7 +49,16 @@ async function NewThreadContent({ params }: NewThreadPageProps) {
         <main className="order-1 min-w-0 bg-white md:order-2">
           <div className="p-4 sm:p-5">
             <h1 className="mb-4 text-lg font-semibold text-slate-700">Create a new thread</h1>
-            <form action="#" className="overflow-hidden border border-slate-200">
+            {error ? (
+              <div role="alert" className="mb-4 rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
+            <form
+              action={`/api/forum/categories/${encodeURIComponent(slug)}/threads`}
+              method="post"
+              className="overflow-hidden border border-slate-200"
+            >
               <div className="grid border-b border-slate-200 sm:grid-cols-[150px_minmax(0,1fr)]">
                 <label
                   htmlFor="thread-title"
@@ -52,6 +72,7 @@ async function NewThreadContent({ params }: NewThreadPageProps) {
                     type="text"
                     name="title"
                     placeholder="Enter a thread title"
+                    maxLength={200}
                     required
                     className="w-full rounded-sm border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#327db4]"
                   />
@@ -89,7 +110,7 @@ async function NewThreadContent({ params }: NewThreadPageProps) {
   );
 }
 
-export default function NewThreadPage({ params }: NewThreadPageProps) {
+export default function NewThreadPage({ params, searchParams }: NewThreadPageProps) {
   return (
     <Suspense
       fallback={
@@ -103,7 +124,7 @@ export default function NewThreadPage({ params }: NewThreadPageProps) {
         </div>
       }
     >
-      <NewThreadContent params={params} />
+      <NewThreadContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
