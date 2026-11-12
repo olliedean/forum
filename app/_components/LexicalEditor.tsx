@@ -75,6 +75,7 @@ type LexicalEditorProps = {
   id?: string;
   name?: string;
   initialHTML?: string;
+  appendHTML?: { id: number; html: string } | null;
   placeholder?: string;
   ariaLabel?: string;
   onChange?: (html: string) => void;
@@ -248,6 +249,32 @@ function InitialHTMLPlugin({ html }: { html: string }) {
       else root.append($createParagraphNode());
     });
   }, [editor, html]);
+
+  return null;
+}
+
+function AppendHTMLPlugin({
+  value,
+}: {
+  value: { id: number; html: string } | null;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const lastAppendedId = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!value || lastAppendedId.current === value.id) return;
+    lastAppendedId.current = value.id;
+
+    editor.update(() => {
+      const document = new DOMParser().parseFromString(value.html, "text/html");
+      const nodes = $generateNodesFromDOM(editor, document);
+      if (nodes.length === 0) return;
+      const root = $getRoot();
+      root.append(...nodes);
+      root.selectEnd();
+    });
+    editor.focus();
+  }, [editor, value]);
 
   return null;
 }
@@ -595,6 +622,7 @@ export default function LexicalEditor({
   id = "message-editor",
   name,
   initialHTML = "",
+  appendHTML = null,
   placeholder = "Write your message...",
   ariaLabel = "Message editor",
   onChange,
@@ -654,6 +682,7 @@ export default function LexicalEditor({
         <AutoLinkPlugin matchers={[autoLinkMatcher]} />
         <TablePlugin hasCellMerge={false} hasHorizontalScroll />
         <InitialHTMLPlugin html={initialHTML} />
+        <AppendHTMLPlugin value={appendHTML} />
         <OnChangePlugin
           onChange={(editorState, editor) => {
             const nextHTML = editorState.read(() => $generateHtmlFromNodes(editor));
