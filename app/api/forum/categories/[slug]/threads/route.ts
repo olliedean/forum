@@ -7,6 +7,13 @@ type NewThreadRouteProps = {
   params: Promise<{ slug: string }>;
 };
 
+function redirectTo(path: string): NextResponse {
+  return new NextResponse(null, {
+    status: 303,
+    headers: { Location: path },
+  });
+}
+
 function stripHtmlForValidation(value: string): string {
   return value
     .replace(/<[^>]*>/g, " ")
@@ -23,7 +30,7 @@ export async function POST(
   const user = await getCurrentUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectTo("/login");
   }
 
   const formData = await request.formData();
@@ -32,9 +39,10 @@ export async function POST(
   const bodyText = stripHtmlForValidation(rawBody);
 
   if (!title || title.length > 200 || !bodyText || bodyText.length > 50_000) {
-    const redirectUrl = new URL(`/${slug}/new`, request.url);
-    redirectUrl.searchParams.set("error", "Thread title and message are required.");
-    return NextResponse.redirect(redirectUrl);
+    const query = new URLSearchParams({
+      error: "Thread title and message are required.",
+    });
+    return redirectTo(`/${encodeURIComponent(slug)}/new?${query}`);
   }
 
   const config = await readForumConfig();
@@ -47,7 +55,7 @@ export async function POST(
       .first();
 
     if (!category) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return redirectTo("/");
     }
 
     const publicId = globalThis.crypto.randomUUID();
@@ -76,15 +84,15 @@ export async function POST(
       });
     });
 
-    return NextResponse.redirect(new URL(`/${category.slug}/${publicId}`, request.url));
+    return redirectTo(
+      `/${encodeURIComponent(category.slug)}/${encodeURIComponent(publicId)}`,
+    );
   } catch (error) {
     console.error("Could not create forum thread.", error);
-    const redirectUrl = new URL(`/${slug}/new`, request.url);
-    redirectUrl.searchParams.set(
-      "error",
-      "We could not create that thread. Please try again.",
-    );
-    return NextResponse.redirect(redirectUrl);
+    const query = new URLSearchParams({
+      error: "We could not create that thread. Please try again.",
+    });
+    return redirectTo(`/${encodeURIComponent(slug)}/new?${query}`);
   } finally {
     await database.destroy();
   }
